@@ -16,8 +16,8 @@
 
 ## 使用方式
 1. 通过事件队列路由（category="internal"）
-2. 直接调用: `openclaw agent --agent offense-internal --message "任务"`
+2. 调试/应急调用: `openclaw agent --agent offense-internal --message "任务"`
 
 ---
 
-**注意**: 此代理是 6 个专业化攻击者之一，取代了通用的 'offense' 代理。
+**注意**: 此代理是 6 个专业化攻击者之一，取代了通用的 `offense` 代理。正式执行路径以事件队列为准。

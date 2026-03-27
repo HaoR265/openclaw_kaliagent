@@ -1,0 +1,44 @@
+{
+  "wireless": {
+    "api_key": "sk-b5caaee6333247fbb3281cddf839ea5d",
+    "base_url": "https://api.deepseek.com/beta",
+    "endpoint": "/chat/completions",
+    "model": "deepseek-chat",
+    "callback_url": "http://localhost:8000/results"
+  },
+  "recon": {
+    "api_key": "sk-1f37071b3d6a4dcb8f4c8230488fede9",
+    "base_url": "https://api.deepseek.com/beta",
+    "endpoint": "/chat/completions",
+    "model": "deepseek-chat",
+    "callback_url": "http://localhost:8000/results"
+  },
+  "web": {
+    "api_key": "sk-6e0260ca2e5646929e95e1f5f4907328",
+    "base_url": "https://api.deepseek.com/beta",
+    "endpoint": "/chat/completions",
+    "model": "deepseek-chat",
+    "callback_url": "http://localhost:8000/results"
+  },
+  "internal": {
+    "api_key": "sk-52bcfb2cd5964eae98751e023d7d74bb",
+    "base_url": "https://api.deepseek.com/beta",
+    "endpoint": "/chat/completions",
+    "model": "deepseek-chat",
+    "callback_url": "http://localhost:8000/results"
+  },
+  "exploit": {
+    "api_key": "sk-f99582d889484114b6cb96a69d735884",
+    "base_url": "https://api.deepseek.com/beta",
+    "endpoint": "/chat/completions",
+    "model": "deepseek-chat",
+    "callback_url": "http://localhost:8000/results"
+  },
+  "social": {
+    "api_key": "sk-32a0a13256cb4d6780a41d9489a7de04",
+    "base_url": "https://api.deepseek.com/beta",
+    "endpoint": "/chat/completions",
+    "model": "deepseek-chat",
+    "callback_url": "http://localhost:8000/results"
+  }
+}

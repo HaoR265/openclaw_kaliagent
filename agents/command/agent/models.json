@@ -46,6 +46,11 @@
         }
       ],
       "apiKey": "sk-b9f5065cb99640d4a95f9adb65f56fbd"
+    },
+    "openai-codex": {
+      "baseUrl": "https://chatgpt.com/backend-api",
+      "api": "openai-codex-responses",
+      "models": []
     }
   }
 }

@@ -1,35 +1,108 @@
-# secrets
+# OpenClaw C方案魔改版 .gitignore
+
+# ========== 敏感信息 ==========
 .env
 .env.*
 credentials/
 identity/
+exec-approvals.json
 
-# runtime / local state
+# ========== 运行时状态 ==========
 memory/
 logs/
 media/
-events/
 sandbox/
 sandboxes/
-workspaces/
 devices/
+subagents/
+canvas/
 
-# reset / backup junk
+# ========== 事件队列运行时文件 ==========
+events/archive/           # 归档文件（自动生成）
+events/*.log             # 日志文件
+events/*.lock            # 锁文件
+events/tasks-*.jsonl     # 每日任务文件（自动生成）
+events/results.jsonl     # 结果文件（自动生成）
+
+# ========== 代理运行时状态 ==========
+agents/*/sessions/       # 会话文件
+agents/*/runs/          # 运行记录
+agents/*/workspace/     # 代理工作空间（可能包含运行时文件）
+
+# ========== 备份和临时文件 ==========
 _hard_reset_*/
+_archive_reset_*/
 *.bak
 *.bak.*
 *.backup
 *.backup.*
 *.bad.*
 *.old
+*.tmp
+.temp/
+temp/
+tmp/
 
-# python / node cache
+# ========== 配置备份文件 ==========
+openclaw.json.backup*
+openclaw.json.bak*
+openclaw.json.before-*
+openclaw.json.pre-*
+openclaw.json.test-*
+openclaw.json.GOLDEN    # 如果需要保留，可移除此项
+openclaw-new.json       # 临时配置
+
+# ========== 开发缓存 ==========
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
 .venv/
 venv/
+env/
+ENV/
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# editors
+# ========== 编辑器文件 ==========
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ========== 文档和报告（选择性跟踪） ==========
+# 以下文件建议跟踪，但排除本地生成的报告
+# OpenClaw-C方案-事件驱动任务队列-详细实施计划.md   # 跟踪
+# OpenClaw-C方案-事件驱动任务队列-总结报告.md       # 跟踪  
+# OpenClaw-Kali工具目录系统-介绍文档.md             # 跟踪
+# README.md, ARCHITECTURE.md, CONTRIBUTING.md, DOCUMENTATION.md # 跟踪
+
+# ========== 工具目录系统 ==========
+# agent-kits/ 目录应该跟踪，但排除可能的缓存
+agent-kits/*/cache/
+agent-kits/*/tmp/
+
+# ========== 构建产物 ==========
+dist/
+build/
+*.egg-info/
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.tox/
+
+# ========== 操作系统文件 ==========
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

@@ -1,0 +1,340 @@
+{
+  "meta": {
+    "lastTouchedVersion": "2026.3.23-2"
+  },
+  "models": {
+    "mode": "merge",
+    "providers": {
+      "deepseek": {
+        "baseUrl": "https://api.deepseek.com",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "deepseek-chat",
+            "name": "DeepSeek Chat",
+            "api": "openai-completions",
+            "reasoning": false,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 131072,
+            "maxTokens": 8192,
+            "compat": {
+              "supportsUsageInStreaming": true
+            }
+          },
+          {
+            "id": "deepseek-reasoner",
+            "name": "DeepSeek Reasoner",
+            "api": "openai-completions",
+            "reasoning": true,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 131072,
+            "maxTokens": 65536,
+            "compat": {
+              "supportsUsageInStreaming": true
+            }
+          }
+        ]
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "models": {
+        "openai/gpt-5.4": {
+          "alias": "GPT-5.4",
+          "params": {
+            "transport": "sse",
+            "fastMode": true
+          }
+        },
+        "deepseek/deepseek-chat": {
+          "alias": "DeepSeek"
+        },
+        "deepseek/deepseek-reasoner": {
+          "alias": "DeepSeekReasoner"
+        },
+        "openai/gpt-5.4-mini": {
+          "alias": "GPT-5.4-mini",
+          "params": {
+            "transport": "sse",
+            "fastMode": true
+          }
+        }
+      }
+    },
+    "list": [
+      {
+        "id": "command",
+        "default": true,
+        "workspace": "/home/asus/.openclaw/workspaces/command",
+        "agentDir": "/home/asus/.openclaw/agents/command/agent",
+        "model": {
+          "primary": "deepseek/deepseek-reasoner",
+          "fallbacks": [
+            "deepseek/deepseek-chat",
+            "openai/gpt-5.4"
+          ]
+        },
+        "subagents": {
+          "allowAgents": [
+            "defense",
+            "offense-wireless",
+            "offense-recon",
+            "offense-web",
+            "offense-internal",
+            "offense-exploit",
+            "offense-social"
+          ]
+        },
+        "tools": {
+          "profile": "coding"
+        },
+        "sandbox": {
+          "mode": "non-main",
+          "scope": "session",
+          "workspaceAccess": "none"
+        }
+      },
+      {
+        "id": "defense",
+        "workspace": "/home/asus/.openclaw/workspaces/defense",
+        "agentDir": "/home/asus/.openclaw/agents/defense/agent",
+        "model": {
+          "primary": "deepseek/deepseek-reasoner",
+          "fallbacks": [
+            "openai/gpt-5.4"
+          ]
+        },
+        "tools": {
+          "profile": "coding"
+        },
+        "sandbox": {
+          "mode": "non-main",
+          "scope": "session",
+          "workspaceAccess": "none"
+        }
+      },
+      {
+        "id": "offense-wireless",
+        "workspace": "/home/asus/.openclaw/workspaces/offense-wireless",
+        "agentDir": "/home/asus/.openclaw/agents/offense-wireless/agent",
+        "model": {
+          "primary": "deepseek/deepseek-chat",
+          "fallbacks": [
+            "openai/gpt-5.4"
+          ]
+        },
+        "tools": {
+          "profile": "coding"
+        },
+        "sandbox": {
+          "mode": "non-main",
+          "scope": "session",
+          "workspaceAccess": "none"
+        }
+      },
+      {
+        "id": "offense-recon",
+        "workspace": "/home/asus/.openclaw/workspaces/offense-recon",
+        "agentDir": "/home/asus/.openclaw/agents/offense-recon/agent",
+        "model": {
+          "primary": "deepseek/deepseek-chat",
+          "fallbacks": [
+            "openai/gpt-5.4"
+          ]
+        },
+        "tools": {
+          "profile": "coding"
+        },
+        "sandbox": {
+          "mode": "non-main",
+          "scope": "session",
+          "workspaceAccess": "none"
+        }
+      },
+      {
+        "id": "offense-web",
+        "workspace": "/home/asus/.openclaw/workspaces/offense-web",
+        "agentDir": "/home/asus/.openclaw/agents/offense-web/agent",
+        "model": {
+          "primary": "deepseek/deepseek-chat",
+          "fallbacks": [
+            "openai/gpt-5.4"
+          ]
+        },
+        "tools": {
+          "profile": "coding"
+        },
+        "sandbox": {
+          "mode": "non-main",
+          "scope": "session",
+          "workspaceAccess": "none"
+        }
+      },
+      {
+        "id": "offense-internal",
+        "workspace": "/home/asus/.openclaw/workspaces/offense-internal",
+        "agentDir": "/home/asus/.openclaw/agents/offense-internal/agent",
+        "model": {
+          "primary": "deepseek/deepseek-chat",
+          "fallbacks": [
+            "openai/gpt-5.4"
+          ]
+        },
+        "tools": {
+          "profile": "coding"
+        },
+        "sandbox": {
+          "mode": "non-main",
+          "scope": "session",
+          "workspaceAccess": "none"
+        }
+      },
+      {
+        "id": "offense-exploit",
+        "workspace": "/home/asus/.openclaw/workspaces/offense-exploit",
+        "agentDir": "/home/asus/.openclaw/agents/offense-exploit/agent",
+        "model": {
+          "primary": "deepseek/deepseek-chat",
+          "fallbacks": [
+            "openai/gpt-5.4"
+          ]
+        },
+        "tools": {
+          "profile": "coding"
+        },
+        "sandbox": {
+          "mode": "non-main",
+          "scope": "session",
+          "workspaceAccess": "none"
+        }
+      },
+      {
+        "id": "offense-social",
+        "workspace": "/home/asus/.openclaw/workspaces/offense-social",
+        "agentDir": "/home/asus/.openclaw/agents/offense-social/agent",
+        "model": {
+          "primary": "deepseek/deepseek-chat",
+          "fallbacks": [
+            "openai/gpt-5.4"
+          ]
+        },
+        "tools": {
+          "profile": "coding"
+        },
+        "sandbox": {
+          "mode": "non-main",
+          "scope": "session",
+          "workspaceAccess": "none"
+        }
+      }
+    ]
+  },
+  "tools": {
+    "profile": "coding",
+    "web": {
+      "search": {
+        "enabled": true,
+        "provider": "duckduckgo"
+      }
+    },
+    "exec": {
+      "pathPrepend": [
+        "/home/asus/.openclaw/agent-kits/common/bin",
+        "/usr/bin",
+        "/usr/sbin",
+        "/bin",
+        "/sbin",
+        "/usr/local/bin",
+        "/usr/local/sbin",
+        "/opt/bin",
+        "/opt/sbin"
+      ],
+      "security": "full",
+      "ask": "off",
+      "host": "gateway"
+    }
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto",
+    "restart": true,
+    "ownerDisplay": "raw"
+  },
+  "session": {
+    "dmScope": "per-channel-peer"
+  },
+  "hooks": {
+    "internal": {
+      "enabled": true,
+      "entries": {
+        "command-logger": {
+          "enabled": true
+        },
+        "session-memory": {
+          "enabled": true
+        }
+      }
+    }
+  },
+  "channels": {},
+  "gateway": {
+    "port": 18789,
+    "mode": "local",
+    "bind": "loopback",
+    "http": {
+      "endpoints": {
+        "responses": {
+          "enabled": true
+        }
+      }
+    },
+    "auth": {
+      "mode": "token",
+      "token": "0ccf8fbeba6824cc0fc4e11ad773c8f12630337bc08cb010"
+    },
+    "tailscale": {
+      "mode": "off",
+      "resetOnExit": false
+    },
+    "nodes": {
+      "denyCommands": [
+        "camera.snap",
+        "camera.clip",
+        "screen.record",
+        "contacts.add",
+        "calendar.add",
+        "reminders.add",
+        "sms.send"
+      ]
+    }
+  },
+  "skills": {
+    "install": {
+      "nodeManager": "npm"
+    }
+  },
+  "plugins": {
+    "entries": {
+      "duckduckgo": {
+        "enabled": true
+      }
+    }
+  }
+}
