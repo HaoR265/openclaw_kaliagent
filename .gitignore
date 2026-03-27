@@ -1,0 +1,35 @@
+# secrets
+.env
+.env.*
+credentials/
+identity/
+
+# runtime / local state
+memory/
+logs/
+media/
+events/
+sandbox/
+sandboxes/
+workspaces/
+devices/
+
+# reset / backup junk
+_hard_reset_*/
+*.bak
+*.bak.*
+*.backup
+*.backup.*
+*.bad.*
+*.old
+
+# python / node cache
+__pycache__/
+*.pyc
+.venv/
+venv/
+node_modules/
+
+# editors
+.vscode/
+.idea/

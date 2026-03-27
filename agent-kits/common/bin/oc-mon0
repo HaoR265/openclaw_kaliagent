@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+source /home/asus/.openclaw/agent-kits/common/bin/_net_guard_lib.sh
+
+REAL_IW="/usr/sbin/iw"
+REAL_IP="/usr/sbin/ip"
+REAL_NMCLI="/usr/bin/nmcli"
+
+PROTECTED_WIFI="$(get_connected_wifi || true)"
+USB_WIFI="$(get_usb_wifi_iface || true)"
+USB_PHY="$(get_usb_phy || true)"
+MON_IFACE="$(get_monitor_iface || true)"
+
+[[ -n "${USB_WIFI:-}" ]] || { echo "[oc-mon0] no USB wifi adapter found" >&2; exit 1; }
+[[ -n "${USB_PHY:-}" ]] || { echo "[oc-mon0] no USB phy found" >&2; exit 1; }
+
+if [[ -n "${MON_IFACE:-}" ]]; then
+  echo "$MON_IFACE"
+  exit 0
+fi
+
+"$REAL_NMCLI" dev set "$USB_WIFI" managed no 2>/dev/null || true
+sudo rfkill unblock all >/dev/null 2>&1 || true
+sudo "$REAL_IP" link set "$USB_WIFI" down
+sudo "$REAL_IW" phy "$USB_PHY" interface add mon0 type monitor
+sudo "$REAL_IP" link set mon0 up
+
+echo "mon0"

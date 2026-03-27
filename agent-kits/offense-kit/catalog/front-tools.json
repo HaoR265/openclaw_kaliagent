@@ -1,0 +1,48 @@
+{
+  "catalog": "offense-front",
+  "items": [
+    {"name":"amass","category":"recon","bin":"amass","summary":"asset and scope discovery"},
+    {"name":"dig","category":"recon","bin":"dig","summary":"DNS lookup and record checks"},
+    {"name":"httpx","category":"recon","bin":"httpx","summary":"HTTP probing and live endpoint checks"},
+    {"name":"masscan","category":"recon","bin":"masscan","summary":"fast port discovery"},
+    {"name":"nmap","category":"recon","bin":"nmap","summary":"host and service enumeration"},
+    {"name":"theharvester","category":"recon","bin":"theharvester","summary":"open-source collection"},
+    {"name":"whatweb","category":"recon","bin":"whatweb","summary":"web fingerprinting"},
+    {"name":"whois","category":"recon","bin":"whois","summary":"registration and ownership lookup"},
+
+    {"name":"burpsuite","category":"web","bin":"burpsuite","summary":"interactive web assessment workspace"},
+    {"name":"curl","category":"web","bin":"curl","summary":"raw HTTP request testing"},
+    {"name":"ffuf","category":"web","bin":"ffuf","summary":"content discovery and fuzzing"},
+    {"name":"gobuster","category":"web","bin":"gobuster","summary":"directory and vhost discovery"},
+    {"name":"nikto","category":"web","bin":"nikto","summary":"web server checks"},
+    {"name":"sqlmap","category":"web","bin":"sqlmap","summary":"database injection assessment"},
+    {"name":"wfuzz","category":"web","bin":"wfuzz","summary":"parameter and content fuzzing"},
+    {"name":"wpscan","category":"web","bin":"wpscan","summary":"WordPress assessment"},
+
+    {"name":"bloodhound-python","category":"ad","bin":"bloodhound-python","summary":"directory relationship collection"},
+    {"name":"enum4linux","category":"ad","bin":"enum4linux","summary":"SMB and domain enumeration"},
+    {"name":"evil-winrm","category":"ad","bin":"evil-winrm","summary":"WinRM client"},
+    {"name":"ldapsearch","category":"ad","bin":"ldapsearch","summary":"LDAP query tool"},
+    {"name":"netexec","category":"ad","bin":"netexec","summary":"network execution framework"},
+    {"name":"responder","category":"ad","bin":"responder","summary":"network response service tooling"},
+    {"name":"smbclient","category":"ad","bin":"smbclient","summary":"SMB client"},
+    {"name":"impacket-GetADUsers","category":"ad","bin":"impacket-GetADUsers","summary":"directory user listing"},
+    {"name":"impacket-GetUserSPNs","category":"ad","bin":"impacket-GetUserSPNs","summary":"service principal collection"},
+    {"name":"impacket-lookupsid","category":"ad","bin":"impacket-lookupsid","summary":"SID lookup"},
+    {"name":"impacket-rpcdump","category":"ad","bin":"impacket-rpcdump","summary":"RPC surface inspection"},
+    {"name":"impacket-smbclient","category":"ad","bin":"impacket-smbclient","summary":"SMB client wrapper"},
+
+    {"name":"binwalk","category":"reverse","bin":"binwalk","summary":"embedded and firmware artifact analysis"},
+    {"name":"gdb","category":"reverse","bin":"gdb","summary":"debugger"},
+    {"name":"objdump","category":"reverse","bin":"objdump","summary":"binary object inspection"},
+    {"name":"radare2","category":"reverse","bin":"radare2","summary":"reverse engineering framework"},
+    {"name":"readelf","category":"reverse","bin":"readelf","summary":"ELF metadata inspection"},
+    {"name":"strings","category":"reverse","bin":"strings","summary":"print readable strings from binaries"},
+
+    {"name":"john","category":"passwords","bin":"john","summary":"password cracking framework"},
+    {"name":"hashcat","category":"passwords","bin":"hashcat","summary":"GPU/CPU password cracking"},
+    {"name":"hydra","category":"passwords","bin":"hydra","summary":"credential testing framework"},
+    {"name":"cewl","category":"passwords","bin":"cewl","summary":"wordlist generation from web content"},
+    {"name":"crunch","category":"passwords","bin":"crunch","summary":"pattern-based wordlist generation"}
+  ]
+}

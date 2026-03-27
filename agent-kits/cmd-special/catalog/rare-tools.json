@@ -1,0 +1,37 @@
+{
+  "catalog": "command-rare",
+  "items": [
+    {
+      "name": "john-extractors",
+      "category": "rare-password-prep",
+      "summary": "format-specific helper commands that prepare inputs for John",
+      "members": [
+        "1password2john","7z2john","adxcsouf2john","aem2john","aix2john","andotp2john",
+        "androidbackup2john","androidfde2john","ansible2john","apex2john","applenotes2john",
+        "aruba2john","atmail2john","axcrypt2john","bestcrypt2john","bitcoin2john",
+        "bitlocker2john","bitshares2john","bitwarden2john","bks2john","blockchain2john",
+        "ccache2john","cisco2john","cracf2john","dashlane2john","deepsound2john",
+        "diskcryptor2john","dmg2john","DPAPImk2john","eapmd5tojohn","ecryptfs2john",
+        "ejabberd2john","electrum2john","encfs2john","enpass2john","enpass5tojohn",
+        "ethereum2john","filezilla2john","geli2john","gpg2john","hccap2john","hccapx2john",
+        "htdigest2john","ibmiscanner2john","ikescan2john","ios7tojohn","itunes_backup2john",
+        "iwork2john","kdcdump2john","keepass2john","keychain2john","keyring2john","keystore2john"
+      ]
+    },
+    {
+      "name": "impacket-rare",
+      "category": "rare-directory-special",
+      "summary": "special-purpose impacket commands kept out of the normal offense front catalog",
+      "members": [
+        "impacket-atexec","impacket-dcomexec","impacket-ntlmrelayx","impacket-psexec",
+        "impacket-raiseChild","impacket-rbcd","impacket-secretsdump",
+        "impacket-ticketer","impacket-wmiexec","impacket-wmipersist"
+      ]
+    },
+    {"name":"wireless-special","category":"rare-wireless","summary":"wireless assessment tooling","members":["aircrack-ng"]},
+    {"name":"network-active-special","category":"rare-network","summary":"network interception and active-response tooling","members":["ettercap"]},
+    {"name":"container-special","category":"rare-container","summary":"container and compose tooling","members":["docker","docker-compose"]},
+    {"name":"reverse-special","category":"rare-reverse","summary":"secondary reverse engineering helpers","members":["gdbserver","r2agent","r2pm","r2r","r2sdb"]},
+    {"name":"reference-special","category":"rare-reference","summary":"reference and exploit index material","members":["exploitdb"]}
+  ]
+}

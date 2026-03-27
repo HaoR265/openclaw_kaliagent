@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+import argparse, json
+from pathlib import Path
+
+ROOT = Path("/home/asus/.openclaw/agent-kits")
+CATALOGS = {
+    "offense": ROOT / "offense-kit" / "catalog" / "front-tools.json",
+    "defense": ROOT / "defense-kit" / "catalog" / "front-tools.json",
+    "command-rare": ROOT / "cmd-special" / "catalog" / "rare-tools.json",
+}
+
+def load(path):
+    return json.loads(Path(path).read_text())
+
+def match_item(item, q):
+    q = q.lower()
+    fields = [
+        item.get("name", ""),
+        item.get("category", ""),
+        item.get("bin", ""),
+        item.get("summary", ""),
+        " ".join(item.get("members", []))
+    ]
+    return q in " ".join(fields).lower()
+
+ap = argparse.ArgumentParser(description="Search agent tool catalogs")
+ap.add_argument("role", choices=["offense", "defense", "command-rare", "all"])
+ap.add_argument("query", nargs="?", default="")
+ap.add_argument("--category", default="")
+args = ap.parse_args()
+
+paths = list(CATALOGS.values()) if args.role == "all" else [CATALOGS[args.role]]
+hits = []
+for p in paths:
+    data = load(p)
+    for item in data.get("items", []):
+        if args.category and item.get("category") != args.category:
+            continue
+        if args.query and not match_item(item, args.query):
+            continue
+        hits.append((data.get("catalog", "unknown"), item))
+
+for catalog, item in hits:
+    line = f"[{catalog}] {item.get('name')} :: {item.get('category')}"
+    if item.get("bin"):
+        line += f" :: {item.get('bin')}"
+    print(line)
+    print(f"  {item.get('summary', '')}")
+    if item.get("members"):
+        preview = ", ".join(item["members"][:12])
+        more = "" if len(item["members"]) <= 12 else f" ... (+{len(item['members'])-12} more)"
+        print(f"  members: {preview}{more}")

@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "profiles": {
+    "deepseek:default": {
+      "type": "api_key",
+      "provider": "deepseek",
+      "key": "sk-b9f5065cb99640d4a95f9adb65f56fbd"
+    }
+  },
+  "lastGood": {
+    "deepseek": "deepseek:default"
+  },
+  "usageStats": {
+    "deepseek:default": {
+      "errorCount": 0,
+      "lastUsed": 1774511687167
+    }
+  }
+}

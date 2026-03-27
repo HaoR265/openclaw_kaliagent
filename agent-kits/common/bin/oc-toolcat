@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+role="${1:-offense}"
+case "$role" in
+  offense) cat /home/asus/.openclaw/agent-kits/offense-kit/catalog/front-tools.json ;;
+  defense) cat /home/asus/.openclaw/agent-kits/defense-kit/catalog/front-tools.json ;;
+  command-rare) cat /home/asus/.openclaw/agent-kits/cmd-special/catalog/rare-tools.json ;;
+  *) echo "usage: oc-toolcat {offense|defense|command-rare}" >&2; exit 1 ;;
+esac

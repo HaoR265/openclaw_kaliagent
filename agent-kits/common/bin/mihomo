@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+echo "[guard] DENY: mihomo is protected." >&2
+exit 126

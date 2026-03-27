@@ -1,0 +1,28 @@
+{
+  "catalog": "defense-front",
+  "items": [
+    {"name":"amass","category":"surface","bin":"amass","summary":"asset and surface discovery"},
+    {"name":"dig","category":"surface","bin":"dig","summary":"DNS inspection"},
+    {"name":"httpx","category":"surface","bin":"httpx","summary":"HTTP probing and reachability checks"},
+    {"name":"nmap","category":"surface","bin":"nmap","summary":"service discovery"},
+    {"name":"theharvester","category":"surface","bin":"theharvester","summary":"open-source collection"},
+    {"name":"whatweb","category":"surface","bin":"whatweb","summary":"web fingerprinting"},
+    {"name":"whois","category":"surface","bin":"whois","summary":"registration lookup"},
+    {"name":"curl","category":"surface","bin":"curl","summary":"manual HTTP checks"},
+
+    {"name":"bloodhound-python","category":"directory","bin":"bloodhound-python","summary":"relationship collection"},
+    {"name":"enum4linux","category":"directory","bin":"enum4linux","summary":"SMB/domain inspection"},
+    {"name":"ldapsearch","category":"directory","bin":"ldapsearch","summary":"LDAP query tool"},
+    {"name":"smbclient","category":"directory","bin":"smbclient","summary":"SMB inspection"},
+    {"name":"impacket-DumpNTLMInfo","category":"directory","bin":"impacket-DumpNTLMInfo","summary":"NTLM info retrieval"},
+    {"name":"impacket-GetADComputers","category":"directory","bin":"impacket-GetADComputers","summary":"directory computer listing"},
+    {"name":"impacket-GetADUsers","category":"directory","bin":"impacket-GetADUsers","summary":"directory user listing"},
+    {"name":"impacket-lookupsid","category":"directory","bin":"impacket-lookupsid","summary":"SID lookup"},
+    {"name":"impacket-rpcdump","category":"directory","bin":"impacket-rpcdump","summary":"RPC inspection"},
+
+    {"name":"strings","category":"evidence","bin":"strings","summary":"extract readable strings"},
+    {"name":"readelf","category":"evidence","bin":"readelf","summary":"ELF metadata inspection"},
+    {"name":"objdump","category":"evidence","bin":"objdump","summary":"binary object inspection"},
+    {"name":"binwalk","category":"evidence","bin":"binwalk","summary":"artifact carving and identification"}
+  ]
+}
