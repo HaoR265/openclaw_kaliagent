@@ -6,6 +6,103 @@
 
 ---
 
+## [2026-03-28 22:55] 修复后端 research workflow 可见性与 campaign 跨 Mission 错绑
+
+**执行者**: Codex
+**变更类型**: 后端 / 数据一致性 / 缺陷修复
+**影响范围**: `events/services/control.py`, `CHANGELOG.md`
+**风险等级**: 高
+**验证状态**: 已验证
+
+### 变更详情
+- **变更目的**:
+  - 解决后端中两个会直接破坏主链闭环的数据一致性问题：research experiment 发射后 workflow 在 Execution 中不可见，以及 campaign 可跨 Mission 错绑 revision/scope
+- **技术内容**:
+  - `create_campaign(...)` 现在会先校验 `mission_session_id` 存在，并强制校验 `plan_revision_id` 与 `approval_scope_id` 都归属于同一个 mission
+  - `create_research_session(...)` 增加显式 `workflow_id` 归属校验，避免把别的 mission 的 workflow 挂进当前 research session
+  - `list_workflows()` 现在会把 `experiment_requests.workflow_id` 生成的 research workflow 一并纳入列表，而不再只显示 `launch_batches`
+  - `get_workflow_detail()` 现在对 research workflow 有后备聚合逻辑，`Research Studio -> Open Workflow` 不会再落到空详情
+- **测试验证**:
+  - `python3 -m py_compile events/services/control.py events/api/research.py dashboard/server.py`
+  - 本地冒烟验证 `launch_experiment_request()` 后 `get_workflow_detail(workflow_id)` 为真，且 `list_workflows()` 可见该 workflow
+  - 本地冒烟验证跨 Mission 调用 `create_campaign(...)` 现在会抛出 `ValueError: revision does not belong to mission`
+  - 冒烟产生的临时 mission、research 记录和任务 JSONL 已清理
+
+---
+
+## [2026-03-28 22:35] 修复 Execution 页运行时崩溃并复验深层页面渲染
+
+**执行者**: Codex
+**变更类型**: 前端 / 稳定性 / 缺陷修复
+**影响范围**: `dashboard-ui/src/pages/ExecutionPage.tsx`, `dashboard/server.py`, `CHANGELOG.md`
+**风险等级**: 中
+**验证状态**: 已验证
+
+### 变更详情
+- **变更目的**:
+  - 解决“首页能开但部分深层页面看起来打不开”的真实运行时问题，并把成品服深层路由的回退检查完整复验
+- **技术内容**:
+  - 修复 `ExecutionPage.tsx` 中先在 `useEffect` 依赖里使用 `tasks / artifacts`、后声明变量导致的运行时崩溃
+  - `dashboard/server.py` 继续保留本轮前面补的 SPA `HEAD` 回退逻辑，避免成品服深层路径探测返回 404
+- **测试验证**:
+  - `npm run build`
+  - `python3 -m py_compile dashboard/server.py`
+  - `chromium --headless --dump-dom http://127.0.0.1:8787/execution`，确认 `Execution` 页已渲染出 `Workflows / Workflow Detail` 空状态而不是空白页
+  - 复验 `8787` 与 `5173` 的 `/execution /campaigns /research /command /intel` 深层路径均返回 `200`
+
+---
+
+## [2026-03-28 22:10] 落地专家研究平台 v1 最小实现：schema、API 与 Research Studio
+
+**执行者**: Codex
+**变更类型**: 后端 / 前端 / 研究平台
+**影响范围**: `events/migrations/003_research_plane.sql`, `events/api/research.py`, `events/services/control.py`, `dashboard/server.py`, `dashboard-ui/src/shared/api/client.ts`, `dashboard-ui/src/pages/ResearchPage.tsx`, `dashboard-ui/src/app/router.tsx`, `dashboard-ui/src/styles.css`, `CHANGELOG.md`
+**风险等级**: 中
+**验证状态**: 已验证
+
+### 变更详情
+- **变更目的**:
+  - 将刚刚成文的“专家研究平台 v1 设计”推进到最小可运行实现，先把 `session -> question -> hypothesis -> experiment -> approve -> launch` 这条研究闭环接到现有控制面和执行面上
+- **技术内容**:
+  - 新增 `events/migrations/003_research_plane.sql`，落地 `research_sessions / research_questions / hypotheses / findings / experiment_requests / experiment_results / analysis_packages`
+  - 新增 `events/api/research.py`，收口 research session、question、hypothesis、experiment 的最小 API 包装
+  - `events/services/control.py` 增加 research plane service：创建研究会话、问题、假设、skeptic review、experiment request、approve / launch，以及 context/detail 聚合
+  - `launch_experiment_request(...)` 会把 `researchSessionId / experimentRequestId / planRevisionId` 写入执行任务参数，并复用现有任务发布链生成 workflow
+  - `dashboard/server.py` 新增 `/api/research/*` 路由，包括 session 列表、详情、context、experiment 详情以及 create/review/approve/launch
+  - `dashboard-ui` 新增 `ResearchPage.tsx`，作为第一版 `Research Studio`：支持创建 research session、添加 question、创建 hypothesis、保存 skeptic review、创建 experiment request、approve 与 launch，并可直接跳转到相关 Mission / Revision / Workflow
+  - `dashboard-ui/src/shared/api/client.ts` 增加 research 客户端调用；`router.tsx` 增加 `Research Studio` 导航入口；`styles.css` 增加按钮禁用态
+- **测试验证**:
+  - `python3 -m py_compile events/services/control.py events/api/research.py dashboard/server.py`
+  - `npm run build`
+  - 本地 research 冒烟：创建临时 mission -> research session -> question -> hypothesis -> review -> experiment -> approve -> launch 成功，输出 `SMOKE_RESEARCH_OK`
+  - 冒烟产生的临时 mission、research 记录和任务记录已从数据库与任务文件中清理
+  - 修正 `dashboard/server.py` 的 SPA `HEAD` 回退，确认 `http://127.0.0.1:8787/execution`、`/campaigns`、`/research` 的 `HEAD` 与 `GET` 均返回 `200`
+
+---
+
+## [2026-03-28 17:40] 新增专家研究平台 v1 设计文档
+
+**执行者**: Codex
+**变更类型**: 文档 / 架构设计
+**影响范围**: `OpenClaw-专家研究平台v1设计.md`, `docs/README.md`, `DOCUMENTATION.md`, `CHANGELOG.md`
+**风险等级**: 低
+**验证状态**: 已验证
+
+### 变更详情
+- **变更目的**:
+  - 将“专家研究模式”从口头讨论收口成正式 v1 设计，明确它与现有 OpenClaw 的关系、对象模型、API 方向和页面结构
+- **技术内容**:
+  - 新增 `OpenClaw-专家研究平台v1设计.md`
+  - 文档明确 `expert -> experiment_request -> control plane -> worker` 的受控实验桥接模型
+  - 明确 `research_session / research_question / hypothesis / finding / experiment_request / experiment_result / analysis_package` 的核心对象
+  - 明确 `Research Studio` 的页面结构和 v1 分阶段实施顺序
+  - 将该文档补入 `docs/README.md` 和 `DOCUMENTATION.md`
+- **测试验证**:
+  - 人工检查文档结构、命名与现有阶段文档的一致性
+  - 确认索引文档中的链接路径正确
+
+---
+
 ## [2026-03-28 17:20] 收口阶段性半成品文档、修正前端服务默认入口并清理仓库运行时冗余
 
 **执行者**: Codex

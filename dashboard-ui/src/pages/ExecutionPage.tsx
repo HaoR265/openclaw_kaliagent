@@ -106,6 +106,10 @@ export function ExecutionPage() {
     };
   }, [selected]);
 
+  const tasks = detail?.tasks || [];
+  const artifacts = detail?.artifacts || [];
+  const timeline = detail?.timeline || [];
+
   useEffect(() => {
     if (taskFocus && !tasks.some((task: any) => task.id === taskFocus)) {
       setTaskFocus("");
@@ -115,9 +119,6 @@ export function ExecutionPage() {
     }
   }, [taskFocus, artifactFocus, tasks, artifacts]);
 
-  const tasks = detail?.tasks || [];
-  const artifacts = detail?.artifacts || [];
-  const timeline = detail?.timeline || [];
   const filteredTasks = tasks.filter((task: any) => {
     if (taskFocus && task.id !== taskFocus) {
       return false;

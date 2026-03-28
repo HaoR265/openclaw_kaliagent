@@ -89,6 +89,10 @@ body {
   display: inline-flex; align-items: center; justify-content: center;
 }
 .button.primary { background: linear-gradient(135deg, var(--accent), #5b3ab1); border-color: transparent; }
+.button:disabled, .list-card:disabled, .chip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 .list-card, .mini-card, .summary-card {
   border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; background: rgba(255, 255, 255, 0.02);
 }

@@ -6,6 +6,7 @@ import { CommandBoardPage } from "../pages/CommandBoardPage";
 import { ExecutionPage } from "../pages/ExecutionPage";
 import { IntelKnowledgePage } from "../pages/IntelKnowledgePage";
 import { MissionPage } from "../pages/MissionPage";
+import { ResearchPage } from "../pages/ResearchPage";
 import { StatusBar } from "../components/StatusBar";
 import { getOverview } from "../shared/api/client";
 
@@ -14,6 +15,7 @@ const links = [
   { to: "/execution", label: "Execution" },
   { to: "/campaigns", label: "Campaigns" },
   { to: "/command", label: "Command Board" },
+  { to: "/research", label: "Research Studio" },
   { to: "/intel", label: "Intel / Knowledge" },
   { to: "/catalog", label: "Catalog" },
 ];
@@ -59,6 +61,7 @@ export function AppRouter() {
           <Route path="/execution" element={<ExecutionPage />} />
           <Route path="/campaigns" element={<CampaignPage />} />
           <Route path="/command" element={<CommandBoardPage />} />
+          <Route path="/research" element={<ResearchPage />} />
           <Route path="/intel" element={<IntelKnowledgePage />} />
           <Route path="/catalog" element={<CatalogPage />} />
         </Routes>

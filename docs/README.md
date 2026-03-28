@@ -36,6 +36,7 @@
 ### 2.3 情报、记忆与研究分析
 
 - [OpenClaw-情报、记忆与研究分析设计.md](/home/asus/.openclaw/OpenClaw-%E6%83%85%E6%8A%A5%E3%80%81%E8%AE%B0%E5%BF%86%E4%B8%8E%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90%E8%AE%BE%E8%AE%A1.md)
+- [OpenClaw-专家研究平台v1设计.md](/home/asus/.openclaw/OpenClaw-%E4%B8%93%E5%AE%B6%E7%A0%94%E7%A9%B6%E5%B9%B3%E5%8F%B0v1%E8%AE%BE%E8%AE%A1.md)
 
 ### 2.4 工具目录系统
 
@@ -53,6 +54,7 @@
 4. [OpenClaw-多Agent编排与Kali工具系统重构设计.md](/home/asus/.openclaw/OpenClaw-%E5%A4%9AAgent%E7%BC%96%E6%8E%92%E4%B8%8EKali%E5%B7%A5%E5%85%B7%E7%B3%BB%E7%BB%9F%E9%87%8D%E6%9E%84%E8%AE%BE%E8%AE%A1.md)
 5. [OpenClaw-智能指挥与作战控制系统设计.md](/home/asus/.openclaw/OpenClaw-%E6%99%BA%E8%83%BD%E6%8C%87%E6%8C%A5%E4%B8%8E%E4%BD%9C%E6%88%98%E6%8E%A7%E5%88%B6%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1.md)
 6. [OpenClaw-情报、记忆与研究分析设计.md](/home/asus/.openclaw/OpenClaw-%E6%83%85%E6%8A%A5%E3%80%81%E8%AE%B0%E5%BF%86%E4%B8%8E%E7%A0%94%E7%A9%B6%E5%88%86%E6%9E%90%E8%AE%BE%E8%AE%A1.md)
+7. [OpenClaw-专家研究平台v1设计.md](/home/asus/.openclaw/OpenClaw-%E4%B8%93%E5%AE%B6%E7%A0%94%E7%A9%B6%E5%B9%B3%E5%8F%B0v1%E8%AE%BE%E8%AE%A1.md)
 
 ---
 

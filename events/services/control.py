@@ -520,23 +520,33 @@ def create_campaign(
     campaign_id = _new_id("camp")
     now = now_iso()
     with get_connection() as conn:
+        mission = conn.execute(
+            "SELECT id FROM mission_sessions WHERE id = ?",
+            (mission_session_id,),
+        ).fetchone()
+        if not mission:
+            raise ValueError("mission not found")
         revision = conn.execute(
             """
             SELECT pr.id, pr.change_summary, pr.task_tree_json, pc.mission_session_id, ms.objective_text
             FROM plan_revisions pr
             JOIN plan_candidates pc ON pc.id = pr.plan_candidate_id
             JOIN mission_sessions ms ON ms.id = pc.mission_session_id
-            WHERE pr.id = ?
+            WHERE pr.id = ? AND pc.mission_session_id = ?
             """,
-            (plan_revision_id,),
+            (plan_revision_id, mission_session_id),
         ).fetchone()
+        if not revision:
+            raise ValueError("revision does not belong to mission")
         scope = conn.execute(
-            "SELECT * FROM approval_scopes WHERE id = ?",
-            (approval_scope_id,),
+            "SELECT * FROM approval_scopes WHERE id = ? AND mission_session_id = ?",
+            (approval_scope_id, mission_session_id),
         ).fetchone()
+        if not scope:
+            raise ValueError("approval scope does not belong to mission")
         scope_issues = _validate_scope_for_revision(
-            _json_load(revision["task_tree_json"], []) if revision else [],
-            dict(scope) if scope else {},
+            _json_load(revision["task_tree_json"], []),
+            dict(scope),
         )
         status = "under_review" if scope_issues else "created"
         scope_summary = "; ".join(scope_issues[:6]) if scope_issues else "scope validated"
@@ -554,7 +564,7 @@ def create_campaign(
                 plan_revision_id,
                 approval_scope_id,
                 status,
-                revision["objective_text"] if revision else "",
+                revision["objective_text"],
                 scope_summary,
                 execution_profile,
                 max_parallelism,
@@ -854,7 +864,7 @@ def launch_plan_revision(
 
 def list_workflows(limit: int = 20) -> list[dict]:
     with get_connection() as conn:
-        rows = conn.execute(
+        launch_rows = conn.execute(
             """
             SELECT
                 lb.workflow_id,
@@ -886,7 +896,63 @@ def list_workflows(limit: int = 20) -> list[dict]:
             """,
             (limit,),
         ).fetchall()
-    return [dict(row) for row in rows]
+        experiment_rows = conn.execute(
+            """
+            SELECT
+                er.workflow_id,
+                er.id AS launch_batch_id,
+                'research-experiment' AS launch_mode,
+                COALESCE(
+                    (
+                        SELECT json_extract(t.payload_json, '$.params.executionProfile')
+                        FROM tasks t
+                        WHERE t.workflow_id = er.workflow_id
+                        ORDER BY t.created_at ASC
+                        LIMIT 1
+                    ),
+                    'steady'
+                ) AS execution_profile,
+                (
+                  SELECT COUNT(*) FROM tasks t
+                  WHERE t.workflow_id = er.workflow_id
+                ) AS task_count,
+                'launched' AS launch_status,
+                er.created_at,
+                ms.id AS mission_id,
+                ms.title AS mission_title,
+                ms.active_campaign_run_id,
+                (
+                  SELECT COUNT(*) FROM tasks t
+                  WHERE t.workflow_id = er.workflow_id
+                ) AS total_tasks,
+                (
+                  SELECT COUNT(*) FROM tasks t
+                  WHERE t.workflow_id = er.workflow_id AND t.state = 'succeeded'
+                ) AS succeeded_tasks,
+                (
+                  SELECT COUNT(*) FROM tasks t
+                  WHERE t.workflow_id = er.workflow_id AND t.state IN ('failed', 'dead_letter')
+                ) AS failed_tasks
+            FROM experiment_requests er
+            JOIN research_sessions rs ON rs.id = er.research_session_id
+            JOIN mission_sessions ms ON ms.id = rs.mission_session_id
+            WHERE er.workflow_id IS NOT NULL
+            ORDER BY er.created_at DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    items: list[dict] = []
+    seen_workflows: set[str] = set()
+    for row in list(launch_rows) + list(experiment_rows):
+        item = dict(row)
+        workflow_id = item.get("workflow_id")
+        if not workflow_id or workflow_id in seen_workflows:
+            continue
+        seen_workflows.add(workflow_id)
+        items.append(item)
+    items.sort(key=lambda item: item.get("created_at") or "", reverse=True)
+    return items[:limit]
 
 
 def get_workflow_detail(workflow_id: str) -> dict | None:
@@ -913,6 +979,41 @@ def get_workflow_detail(workflow_id: str) -> dict | None:
             """,
             (workflow_id,),
         ).fetchone()
+        if not launch:
+            launch = conn.execute(
+                """
+                SELECT
+                    er.workflow_id,
+                    er.id AS launch_batch_id,
+                    'research-experiment' AS launch_mode,
+                    COALESCE(
+                        (
+                            SELECT json_extract(t.payload_json, '$.params.executionProfile')
+                            FROM tasks t
+                            WHERE t.workflow_id = er.workflow_id
+                            ORDER BY t.created_at ASC
+                            LIMIT 1
+                        ),
+                        'steady'
+                    ) AS execution_profile,
+                    (
+                      SELECT COUNT(*) FROM tasks t
+                      WHERE t.workflow_id = er.workflow_id
+                    ) AS task_count,
+                    'launched' AS launch_status,
+                    er.created_at,
+                    ms.id AS mission_id,
+                    ms.title AS mission_title,
+                    ms.active_campaign_run_id,
+                    rs.plan_revision_id,
+                    er.request_summary AS change_summary
+                FROM experiment_requests er
+                JOIN research_sessions rs ON rs.id = er.research_session_id
+                JOIN mission_sessions ms ON ms.id = rs.mission_session_id
+                WHERE er.workflow_id = ?
+                """,
+                (workflow_id,),
+            ).fetchone()
         if not launch:
             return None
         tasks = conn.execute(
@@ -1076,3 +1177,663 @@ def control_campaign(campaign_id: str, action: str) -> dict | None:
         row = conn.execute("SELECT * FROM campaign_runs WHERE id = ?", (campaign_id,)).fetchone()
         conn.commit()
     return dict(row) if row else None
+
+
+def list_research_sessions(limit: int = 20) -> list[dict]:
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT
+                rs.id,
+                rs.mission_session_id,
+                rs.plan_revision_id,
+                rs.workflow_id,
+                rs.session_goal,
+                rs.scope_summary,
+                rs.status,
+                rs.created_by,
+                rs.created_at,
+                rs.updated_at,
+                ms.title AS mission_title,
+                (
+                  SELECT COUNT(*) FROM research_questions rq
+                  WHERE rq.research_session_id = rs.id
+                ) AS question_count,
+                (
+                  SELECT COUNT(*) FROM experiment_requests er
+                  WHERE er.research_session_id = rs.id
+                ) AS experiment_count
+            FROM research_sessions rs
+            JOIN mission_sessions ms ON ms.id = rs.mission_session_id
+            ORDER BY rs.updated_at DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def create_research_session(
+    mission_session_id: str,
+    plan_revision_id: str | None = None,
+    workflow_id: str | None = None,
+    session_goal: str = "",
+    scope_summary: str = "",
+    created_by: str = "operator",
+) -> dict:
+    session_id = _new_id("rs")
+    now = now_iso()
+    with get_connection() as conn:
+        mission = conn.execute(
+            "SELECT id, latest_workflow_id FROM mission_sessions WHERE id = ?",
+            (mission_session_id,),
+        ).fetchone()
+        if not mission:
+            raise ValueError("mission not found")
+        if plan_revision_id:
+            revision = conn.execute(
+                """
+                SELECT pr.id
+                FROM plan_revisions pr
+                JOIN plan_candidates pc ON pc.id = pr.plan_candidate_id
+                WHERE pr.id = ? AND pc.mission_session_id = ?
+                """,
+                (plan_revision_id, mission_session_id),
+            ).fetchone()
+            if not revision:
+                raise ValueError("revision does not belong to mission")
+        if workflow_id:
+            workflow = conn.execute(
+                """
+                SELECT workflow_id
+                FROM launch_batches
+                WHERE workflow_id = ? AND mission_session_id = ?
+                UNION
+                SELECT er.workflow_id
+                FROM experiment_requests er
+                JOIN research_sessions rs ON rs.id = er.research_session_id
+                WHERE er.workflow_id = ? AND rs.mission_session_id = ?
+                LIMIT 1
+                """,
+                (workflow_id, mission_session_id, workflow_id, mission_session_id),
+            ).fetchone()
+            if not workflow:
+                raise ValueError("workflow does not belong to mission")
+        conn.execute(
+            """
+            INSERT INTO research_sessions (
+                id, mission_session_id, plan_revision_id, workflow_id, session_goal,
+                scope_summary, status, created_by, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)
+            """,
+            (
+                session_id,
+                mission_session_id,
+                plan_revision_id,
+                workflow_id or mission["latest_workflow_id"],
+                session_goal,
+                scope_summary,
+                created_by,
+                now,
+                now,
+            ),
+        )
+        conn.execute(
+            "UPDATE mission_sessions SET updated_at = ? WHERE id = ?",
+            (now, mission_session_id),
+        )
+        row = conn.execute("SELECT * FROM research_sessions WHERE id = ?", (session_id,)).fetchone()
+        conn.commit()
+    return dict(row)
+
+
+def create_research_question(
+    research_session_id: str,
+    question_text: str,
+    priority: int = 50,
+    assigned_experts: list[str] | None = None,
+) -> dict:
+    if not question_text.strip():
+        raise ValueError("question_text is required")
+    question_id = _new_id("rq")
+    now = now_iso()
+    with get_connection() as conn:
+        session = conn.execute(
+            "SELECT id FROM research_sessions WHERE id = ?",
+            (research_session_id,),
+        ).fetchone()
+        if not session:
+            raise ValueError("research session not found")
+        conn.execute(
+            """
+            INSERT INTO research_questions (
+                id, research_session_id, question_text, priority, assigned_experts_json, status, created_at
+            ) VALUES (?, ?, ?, ?, ?, 'open', ?)
+            """,
+            (
+                question_id,
+                research_session_id,
+                question_text,
+                priority,
+                json.dumps(assigned_experts or [], ensure_ascii=False),
+                now,
+            ),
+        )
+        conn.execute(
+            "UPDATE research_sessions SET updated_at = ? WHERE id = ?",
+            (now, research_session_id),
+        )
+        row = conn.execute("SELECT * FROM research_questions WHERE id = ?", (question_id,)).fetchone()
+        conn.commit()
+    item = dict(row)
+    item["assigned_experts_json"] = _json_load(item["assigned_experts_json"], [])
+    return item
+
+
+def create_hypothesis(
+    research_question_id: str,
+    expert_role: str,
+    title: str,
+    summary: str = "",
+    assumptions: list | None = None,
+    applicability_conditions: list | None = None,
+    confidence_before: float = 0.5,
+) -> dict:
+    if not title.strip():
+        raise ValueError("title is required")
+    hypothesis_id = _new_id("hyp")
+    now = now_iso()
+    with get_connection() as conn:
+        question = conn.execute(
+            "SELECT id, research_session_id FROM research_questions WHERE id = ?",
+            (research_question_id,),
+        ).fetchone()
+        if not question:
+            raise ValueError("research question not found")
+        conn.execute(
+            """
+            INSERT INTO hypotheses (
+                id, research_question_id, expert_role, title, summary, assumptions_json,
+                applicability_conditions_json, confidence_before, skeptic_review_status,
+                skeptic_notes_json, status, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', '[]', 'open', ?, ?)
+            """,
+            (
+                hypothesis_id,
+                research_question_id,
+                expert_role,
+                title,
+                summary,
+                json.dumps(assumptions or [], ensure_ascii=False),
+                json.dumps(applicability_conditions or [], ensure_ascii=False),
+                confidence_before,
+                now,
+                now,
+            ),
+        )
+        conn.execute(
+            "UPDATE research_sessions SET updated_at = ? WHERE id = ?",
+            (now, question["research_session_id"]),
+        )
+        row = conn.execute("SELECT * FROM hypotheses WHERE id = ?", (hypothesis_id,)).fetchone()
+        conn.commit()
+    item = dict(row)
+    item["assumptions_json"] = _json_load(item["assumptions_json"], [])
+    item["applicability_conditions_json"] = _json_load(item["applicability_conditions_json"], [])
+    item["skeptic_notes_json"] = _json_load(item["skeptic_notes_json"], [])
+    return item
+
+
+def review_hypothesis(
+    hypothesis_id: str,
+    skeptic_review_status: str,
+    skeptic_notes: list | None = None,
+) -> dict | None:
+    now = now_iso()
+    with get_connection() as conn:
+        hypothesis = conn.execute(
+            """
+            SELECT h.id, rq.research_session_id
+            FROM hypotheses h
+            JOIN research_questions rq ON rq.id = h.research_question_id
+            WHERE h.id = ?
+            """,
+            (hypothesis_id,),
+        ).fetchone()
+        if not hypothesis:
+            return None
+        conn.execute(
+            """
+            UPDATE hypotheses
+            SET skeptic_review_status = ?,
+                skeptic_notes_json = ?,
+                updated_at = ?
+            WHERE id = ?
+            """,
+            (
+                skeptic_review_status,
+                json.dumps(skeptic_notes or [], ensure_ascii=False),
+                now,
+                hypothesis_id,
+            ),
+        )
+        conn.execute(
+            "UPDATE research_sessions SET updated_at = ? WHERE id = ?",
+            (now, hypothesis["research_session_id"]),
+        )
+        row = conn.execute("SELECT * FROM hypotheses WHERE id = ?", (hypothesis_id,)).fetchone()
+        conn.commit()
+    item = dict(row)
+    item["assumptions_json"] = _json_load(item["assumptions_json"], [])
+    item["applicability_conditions_json"] = _json_load(item["applicability_conditions_json"], [])
+    item["skeptic_notes_json"] = _json_load(item["skeptic_notes_json"], [])
+    return item
+
+
+def create_experiment_request(
+    hypothesis_id: str,
+    requested_by_role: str,
+    request_summary: str,
+    required_observations: list | None = None,
+    suggested_tasks: list | None = None,
+    expected_artifacts: list | None = None,
+    risk_level: str = "medium",
+    approval_mode: str = "commander_review",
+) -> dict:
+    if not request_summary.strip():
+        raise ValueError("request_summary is required")
+    experiment_id = _new_id("exp")
+    now = now_iso()
+    with get_connection() as conn:
+        hypothesis = conn.execute(
+            """
+            SELECT
+                h.id,
+                h.expert_role,
+                rq.research_session_id
+            FROM hypotheses h
+            JOIN research_questions rq ON rq.id = h.research_question_id
+            WHERE h.id = ?
+            """,
+            (hypothesis_id,),
+        ).fetchone()
+        if not hypothesis:
+            raise ValueError("hypothesis not found")
+        conn.execute(
+            """
+            INSERT INTO experiment_requests (
+                id, research_session_id, hypothesis_id, requested_by_role, request_summary,
+                required_observations_json, suggested_tasks_json, expected_artifacts_json,
+                risk_level, approval_mode, status, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_review', ?, ?)
+            """,
+            (
+                experiment_id,
+                hypothesis["research_session_id"],
+                hypothesis_id,
+                requested_by_role or hypothesis["expert_role"] or "research-lead",
+                request_summary,
+                json.dumps(required_observations or [], ensure_ascii=False),
+                json.dumps(suggested_tasks or [], ensure_ascii=False),
+                json.dumps(expected_artifacts or [], ensure_ascii=False),
+                risk_level,
+                approval_mode,
+                now,
+                now,
+            ),
+        )
+        conn.execute(
+            "UPDATE research_sessions SET updated_at = ? WHERE id = ?",
+            (now, hypothesis["research_session_id"]),
+        )
+        row = conn.execute("SELECT * FROM experiment_requests WHERE id = ?", (experiment_id,)).fetchone()
+        conn.commit()
+    item = dict(row)
+    item["required_observations_json"] = _json_load(item["required_observations_json"], [])
+    item["suggested_tasks_json"] = _json_load(item["suggested_tasks_json"], [])
+    item["expected_artifacts_json"] = _json_load(item["expected_artifacts_json"], [])
+    return item
+
+
+def approve_experiment_request(
+    experiment_request_id: str,
+    approved_by: str = "commander",
+) -> dict | None:
+    now = now_iso()
+    with get_connection() as conn:
+        existing = conn.execute(
+            "SELECT id, research_session_id, status FROM experiment_requests WHERE id = ?",
+            (experiment_request_id,),
+        ).fetchone()
+        if not existing:
+            return None
+        if existing["status"] not in {"pending_review", "approved"}:
+            raise ValueError(f"cannot approve experiment from status {existing['status']}")
+        conn.execute(
+            """
+            UPDATE experiment_requests
+            SET status = 'approved',
+                approved_by = ?,
+                approved_at = COALESCE(approved_at, ?),
+                updated_at = ?
+            WHERE id = ?
+            """,
+            (approved_by, now, now, experiment_request_id),
+        )
+        conn.execute(
+            "UPDATE research_sessions SET updated_at = ? WHERE id = ?",
+            (now, existing["research_session_id"]),
+        )
+        row = conn.execute("SELECT * FROM experiment_requests WHERE id = ?", (experiment_request_id,)).fetchone()
+        conn.commit()
+    return _hydrate_experiment_request(row)
+
+
+def launch_experiment_request(
+    experiment_request_id: str,
+    execution_profile: str = "steady",
+) -> dict:
+    now = now_iso()
+    with get_connection() as conn:
+        experiment = conn.execute(
+            """
+            SELECT
+                er.*,
+                rs.mission_session_id,
+                rs.plan_revision_id
+            FROM experiment_requests er
+            JOIN research_sessions rs ON rs.id = er.research_session_id
+            WHERE er.id = ?
+            """,
+            (experiment_request_id,),
+        ).fetchone()
+        if not experiment:
+            raise ValueError("experiment request not found")
+        if experiment["status"] == "launched" and experiment["workflow_id"]:
+            existing_result = conn.execute(
+                "SELECT * FROM experiment_results WHERE experiment_request_id = ?",
+                (experiment_request_id,),
+            ).fetchone()
+            return {
+                "experiment_request": _hydrate_experiment_request(experiment),
+                "experiment_result": _hydrate_experiment_result(existing_result) if existing_result else None,
+            }
+        if experiment["status"] != "approved":
+            raise ValueError("experiment request must be approved before launch")
+        suggested_tasks = _json_load(experiment["suggested_tasks_json"], [])
+        if not suggested_tasks:
+            raise ValueError("experiment request has no suggested tasks")
+
+        workflow_id = _new_id("wf")
+        published_task_ids: list[str] = []
+        for task in suggested_tasks:
+            task_params = dict(task.get("params") or {})
+            task_params.setdefault("workflowId", workflow_id)
+            task_params.setdefault("researchSessionId", experiment["research_session_id"])
+            task_params.setdefault("experimentRequestId", experiment_request_id)
+            if experiment["plan_revision_id"]:
+                task_params.setdefault("planRevisionId", experiment["plan_revision_id"])
+            if task.get("notes"):
+                task_params.setdefault("notes", task["notes"])
+            task_id = publish_event(
+                event_type=task.get("type", "task"),
+                task=task.get("task") or task.get("operation") or "research-experiment",
+                params=task_params,
+                agent=task.get("agent", "offense"),
+                category=task.get("category") or task.get("capability"),
+                execution_profile=execution_profile,
+                secondary_confirmation=bool(task_params.get("secondaryConfirmation", False)),
+                interactive=bool(task_params.get("interactive", False)),
+            )
+            published_task_ids.append(task_id)
+            conn.execute(
+                """
+                UPDATE tasks
+                SET workflow_id = ?,
+                    correlation_id = ?
+                WHERE id = ?
+                """,
+                (workflow_id, workflow_id, task_id),
+            )
+
+        conn.execute(
+            """
+            UPDATE experiment_requests
+            SET status = 'launched',
+                workflow_id = ?,
+                updated_at = ?
+            WHERE id = ?
+            """,
+            (workflow_id, now, experiment_request_id),
+        )
+        conn.execute(
+            """
+            INSERT INTO experiment_results (
+                id, experiment_request_id, workflow_id, task_ids_json, result_summary,
+                structured_observations_json, artifact_refs_json, confidence_delta, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, '{}', '[]', 0, ?, ?)
+            ON CONFLICT(experiment_request_id) DO UPDATE SET
+                workflow_id = excluded.workflow_id,
+                task_ids_json = excluded.task_ids_json,
+                result_summary = excluded.result_summary,
+                updated_at = excluded.updated_at
+            """,
+            (
+                _new_id("expr"),
+                experiment_request_id,
+                workflow_id,
+                json.dumps(published_task_ids, ensure_ascii=False),
+                f"launched {len(published_task_ids)} experiment tasks",
+                now,
+                now,
+            ),
+        )
+        conn.execute(
+            """
+            UPDATE mission_sessions
+            SET latest_workflow_id = ?, updated_at = ?
+            WHERE id = ?
+            """,
+            (workflow_id, now, experiment["mission_session_id"]),
+        )
+        conn.execute(
+            "UPDATE research_sessions SET updated_at = ? WHERE id = ?",
+            (now, experiment["research_session_id"]),
+        )
+        experiment_row = conn.execute("SELECT * FROM experiment_requests WHERE id = ?", (experiment_request_id,)).fetchone()
+        result_row = conn.execute("SELECT * FROM experiment_results WHERE experiment_request_id = ?", (experiment_request_id,)).fetchone()
+        conn.commit()
+    return {
+        "experiment_request": _hydrate_experiment_request(experiment_row),
+        "experiment_result": _hydrate_experiment_result(result_row) if result_row else None,
+    }
+
+
+def _hydrate_hypothesis(row) -> dict:
+    item = dict(row)
+    item["assumptions_json"] = _json_load(item["assumptions_json"], [])
+    item["applicability_conditions_json"] = _json_load(item["applicability_conditions_json"], [])
+    item["skeptic_notes_json"] = _json_load(item["skeptic_notes_json"], [])
+    return item
+
+
+def _hydrate_experiment_request(row) -> dict:
+    item = dict(row)
+    item["required_observations_json"] = _json_load(item["required_observations_json"], [])
+    item["suggested_tasks_json"] = _json_load(item["suggested_tasks_json"], [])
+    item["expected_artifacts_json"] = _json_load(item["expected_artifacts_json"], [])
+    return item
+
+
+def _hydrate_experiment_result(row) -> dict:
+    item = dict(row)
+    item["task_ids_json"] = _json_load(item["task_ids_json"], [])
+    item["structured_observations_json"] = _json_load(item["structured_observations_json"], {})
+    item["artifact_refs_json"] = _json_load(item["artifact_refs_json"], [])
+    return item
+
+
+def get_experiment_request_detail(experiment_request_id: str) -> dict | None:
+    with get_connection() as conn:
+        experiment = conn.execute(
+            """
+            SELECT
+                er.*,
+                h.title AS hypothesis_title,
+                h.expert_role,
+                rq.question_text
+            FROM experiment_requests er
+            JOIN hypotheses h ON h.id = er.hypothesis_id
+            JOIN research_questions rq ON rq.id = h.research_question_id
+            WHERE er.id = ?
+            """,
+            (experiment_request_id,),
+        ).fetchone()
+        if not experiment:
+            return None
+        result = conn.execute(
+            "SELECT * FROM experiment_results WHERE experiment_request_id = ?",
+            (experiment_request_id,),
+        ).fetchone()
+    return {
+        "experiment_request": _hydrate_experiment_request(experiment),
+        "experiment_result": _hydrate_experiment_result(result) if result else None,
+    }
+
+
+def get_research_session_detail(research_session_id: str) -> dict | None:
+    with get_connection() as conn:
+        session = conn.execute(
+            """
+            SELECT
+                rs.*,
+                ms.title AS mission_title,
+                ms.objective_text
+            FROM research_sessions rs
+            JOIN mission_sessions ms ON ms.id = rs.mission_session_id
+            WHERE rs.id = ?
+            """,
+            (research_session_id,),
+        ).fetchone()
+        if not session:
+            return None
+        questions = conn.execute(
+            """
+            SELECT *
+            FROM research_questions
+            WHERE research_session_id = ?
+            ORDER BY priority DESC, created_at ASC
+            """,
+            (research_session_id,),
+        ).fetchall()
+        hypotheses = conn.execute(
+            """
+            SELECT
+                h.*,
+                rq.question_text,
+                rq.research_session_id
+            FROM hypotheses h
+            JOIN research_questions rq ON rq.id = h.research_question_id
+            WHERE rq.research_session_id = ?
+            ORDER BY h.created_at DESC
+            """,
+            (research_session_id,),
+        ).fetchall()
+        experiments = conn.execute(
+            """
+            SELECT
+                er.*,
+                h.title AS hypothesis_title,
+                h.expert_role,
+                rq.question_text
+            FROM experiment_requests er
+            JOIN hypotheses h ON h.id = er.hypothesis_id
+            JOIN research_questions rq ON rq.id = h.research_question_id
+            WHERE er.research_session_id = ?
+            ORDER BY er.created_at DESC
+            """,
+            (research_session_id,),
+        ).fetchall()
+        experiment_results = conn.execute(
+            """
+            SELECT
+                xr.*,
+                er.hypothesis_id,
+                er.request_summary
+            FROM experiment_results xr
+            JOIN experiment_requests er ON er.id = xr.experiment_request_id
+            WHERE er.research_session_id = ?
+            ORDER BY xr.created_at DESC
+            """,
+            (research_session_id,),
+        ).fetchall()
+        packages = conn.execute(
+            """
+            SELECT *
+            FROM analysis_packages
+            WHERE research_session_id = ?
+            ORDER BY updated_at DESC
+            """,
+            (research_session_id,),
+        ).fetchall()
+
+    question_items = []
+    for row in questions:
+        item = dict(row)
+        item["assigned_experts_json"] = _json_load(item["assigned_experts_json"], [])
+        question_items.append(item)
+
+    package_items = []
+    for row in packages:
+        item = dict(row)
+        item["hypotheses_json"] = _json_load(item["hypotheses_json"], [])
+        item["options_json"] = _json_load(item["options_json"], [])
+        item["warnings_json"] = _json_load(item["warnings_json"], [])
+        item["evidence_refs_json"] = _json_load(item["evidence_refs_json"], [])
+        item["proposed_revision_json"] = _json_load(item["proposed_revision_json"], {})
+        item["proposed_experiments_json"] = _json_load(item["proposed_experiments_json"], [])
+        package_items.append(item)
+
+    return {
+        "research_session": dict(session),
+        "questions": question_items,
+        "hypotheses": [_hydrate_hypothesis(row) for row in hypotheses],
+        "experiments": [_hydrate_experiment_request(row) for row in experiments],
+        "experiment_results": [_hydrate_experiment_result(row) for row in experiment_results],
+        "analysis_packages": package_items,
+    }
+
+
+def build_research_context(research_session_id: str) -> dict | None:
+    detail = get_research_session_detail(research_session_id)
+    if not detail:
+        return None
+    session = detail["research_session"]
+    mission_detail = get_mission(session["mission_session_id"])
+    workflow_detail = get_workflow_detail(session["workflow_id"]) if session.get("workflow_id") else None
+    revision = None
+    capabilities: set[str] = set()
+    if mission_detail and session.get("plan_revision_id"):
+        for candidate in mission_detail.get("revisions", []):
+            if candidate.get("id") == session["plan_revision_id"]:
+                revision = candidate
+                for task in candidate.get("task_tree_json", []):
+                    capability = task.get("category") or task.get("capability")
+                    if capability:
+                        capabilities.add(capability)
+                break
+    if workflow_detail:
+        for task in workflow_detail.get("tasks", []):
+            capability = task.get("capability")
+            if capability:
+                capabilities.add(capability)
+    return {
+        "research_session": session,
+        "mission": mission_detail["mission"] if mission_detail else None,
+        "selected_revision": revision,
+        "workflow": workflow_detail["workflow"] if workflow_detail else None,
+        "capabilities": sorted(capabilities),
+        "question_count": len(detail.get("questions", [])),
+        "hypothesis_count": len(detail.get("hypotheses", [])),
+        "experiment_count": len(detail.get("experiments", [])),
+    }

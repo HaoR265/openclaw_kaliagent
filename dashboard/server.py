@@ -25,6 +25,7 @@ from publish import publish_event  # noqa: E402
 from api import campaigns as campaigns_api  # noqa: E402
 from api import missions as missions_api  # noqa: E402
 from api import plans as plans_api  # noqa: E402
+from api import research as research_api  # noqa: E402
 from knowledge.search import search_intel as knowledge_search_intel  # noqa: E402
 from knowledge.search import search_knowledge as knowledge_search_knowledge  # noqa: E402
 from services.control import get_artifact_detail, get_workflow_detail, list_workflows  # noqa: E402
@@ -580,6 +581,16 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         except (BrokenPipeError, ConnectionResetError):
             return
 
+    def _apply_spa_fallback(self, request_path: str) -> None:
+        if _should_serve_spa_index(request_path):
+            self.path = "/index.html"
+
+    def do_HEAD(self) -> None:
+        parsed = urlparse(self.path)
+        if not parsed.path.startswith("/api/"):
+            self._apply_spa_fallback(parsed.path)
+        return super().do_HEAD()
+
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
         path_parts = [part for part in parsed.path.split("/") if part]
@@ -613,6 +624,31 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self._send_json(get_command_board_insights(path_parts[2]))
             except ValueError as exc:
                 self._send_json({"error": str(exc)}, status=404)
+            return
+        if parsed.path == "/api/research/sessions":
+            limit = int(parse_qs(parsed.query).get("limit", ["20"])[0])
+            self._send_json(research_api.list_items(limit=limit))
+            return
+        if len(path_parts) == 4 and path_parts[:3] == ["api", "research", "sessions"] and path_parts[3]:
+            session = research_api.get_item(path_parts[3])
+            if not session:
+                self._send_json({"error": "research session not found"}, status=404)
+                return
+            self._send_json(session)
+            return
+        if len(path_parts) == 5 and path_parts[:3] == ["api", "research", "sessions"] and path_parts[4] == "context":
+            session = research_api.get_context(path_parts[3])
+            if not session:
+                self._send_json({"error": "research session not found"}, status=404)
+                return
+            self._send_json(session)
+            return
+        if len(path_parts) == 4 and path_parts[:3] == ["api", "research", "experiments"] and path_parts[3]:
+            item = research_api.get_experiment_item(path_parts[3])
+            if not item:
+                self._send_json({"error": "experiment request not found"}, status=404)
+                return
+            self._send_json(item)
             return
         if parsed.path == "/api/campaigns":
             limit = int(parse_qs(parsed.query).get("limit", ["20"])[0])
@@ -672,8 +708,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/agents":
             self._send_json(get_agent_workbench())
             return
-        if _should_serve_spa_index(parsed.path):
-            self.path = "/index.html"
+        self._apply_spa_fallback(parsed.path)
         return super().do_GET()
 
     def do_POST(self) -> None:
@@ -693,6 +728,78 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 return
             mission = missions_api.create_item(payload)
             self._send_json({"mission": mission}, status=HTTPStatus.CREATED)
+            return
+
+        if parsed.path == "/api/research/sessions":
+            if not payload.get("mission_session_id"):
+                self._send_json({"error": "mission_session_id is required"}, status=400)
+                return
+            try:
+                session = research_api.create_item(payload)
+            except ValueError as exc:
+                self._send_json({"error": str(exc)}, status=400)
+                return
+            self._send_json({"research_session": session}, status=HTTPStatus.CREATED)
+            return
+
+        if len(path_parts) == 5 and path_parts[:3] == ["api", "research", "sessions"] and path_parts[4] == "questions":
+            try:
+                question = research_api.create_question_item(path_parts[3], payload)
+            except ValueError as exc:
+                self._send_json({"error": str(exc)}, status=400)
+                return
+            self._send_json({"research_question": question}, status=HTTPStatus.CREATED)
+            return
+
+        if len(path_parts) == 5 and path_parts[:3] == ["api", "research", "questions"] and path_parts[4] == "hypotheses":
+            try:
+                hypothesis = research_api.create_hypothesis_item(path_parts[3], payload)
+            except ValueError as exc:
+                self._send_json({"error": str(exc)}, status=400)
+                return
+            self._send_json({"hypothesis": hypothesis}, status=HTTPStatus.CREATED)
+            return
+
+        if len(path_parts) == 5 and path_parts[:3] == ["api", "research", "hypotheses"] and path_parts[4] == "review":
+            try:
+                hypothesis = research_api.review_hypothesis_item(path_parts[3], payload)
+            except ValueError as exc:
+                self._send_json({"error": str(exc)}, status=400)
+                return
+            if not hypothesis:
+                self._send_json({"error": "hypothesis not found"}, status=404)
+                return
+            self._send_json({"hypothesis": hypothesis})
+            return
+
+        if len(path_parts) == 5 and path_parts[:3] == ["api", "research", "hypotheses"] and path_parts[4] == "experiments":
+            try:
+                experiment = research_api.create_experiment_item(path_parts[3], payload)
+            except ValueError as exc:
+                self._send_json({"error": str(exc)}, status=400)
+                return
+            self._send_json({"experiment_request": experiment}, status=HTTPStatus.CREATED)
+            return
+
+        if len(path_parts) == 5 and path_parts[:3] == ["api", "research", "experiments"] and path_parts[4] == "approve":
+            try:
+                experiment = research_api.approve_experiment_item(path_parts[3], payload)
+            except ValueError as exc:
+                self._send_json({"error": str(exc)}, status=400)
+                return
+            if not experiment:
+                self._send_json({"error": "experiment request not found"}, status=404)
+                return
+            self._send_json({"experiment_request": experiment})
+            return
+
+        if len(path_parts) == 5 and path_parts[:3] == ["api", "research", "experiments"] and path_parts[4] == "launch":
+            try:
+                experiment = research_api.launch_experiment_item(path_parts[3], payload)
+            except ValueError as exc:
+                self._send_json({"error": str(exc)}, status=400)
+                return
+            self._send_json(experiment, status=HTTPStatus.CREATED)
             return
 
         if len(path_parts) == 4 and path_parts[:2] == ["api", "missions"] and path_parts[3] == "discuss":

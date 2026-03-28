@@ -132,6 +132,111 @@ export function getArtifact(artifactId: string) {
   return request<{ artifact: any }>(`/api/artifacts/${artifactId}`);
 }
 
+export function listResearchSessions(limit = 20) {
+  return request<any[]>(`/api/research/sessions?limit=${limit}`);
+}
+
+export function createResearchSession(payload: {
+  mission_session_id: string;
+  plan_revision_id?: string;
+  workflow_id?: string;
+  session_goal: string;
+  scope_summary?: string;
+  created_by?: string;
+}) {
+  return request<{ research_session: any }>("/api/research/sessions", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getResearchSession(sessionId: string) {
+  return request<any>(`/api/research/sessions/${sessionId}`);
+}
+
+export function getResearchContext(sessionId: string) {
+  return request<any>(`/api/research/sessions/${sessionId}/context`);
+}
+
+export function createResearchQuestion(
+  sessionId: string,
+  payload: {
+    question_text: string;
+    priority?: number;
+    assigned_experts?: string[];
+  },
+) {
+  return request<{ research_question: any }>(`/api/research/sessions/${sessionId}/questions`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function createResearchHypothesis(
+  questionId: string,
+  payload: {
+    expert_role: string;
+    title: string;
+    summary?: string;
+    assumptions?: string[];
+    applicability_conditions?: string[];
+    confidence_before?: number;
+  },
+) {
+  return request<{ hypothesis: any }>(`/api/research/questions/${questionId}/hypotheses`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function reviewResearchHypothesis(
+  hypothesisId: string,
+  payload: {
+    skeptic_review_status: string;
+    skeptic_notes?: string[];
+  },
+) {
+  return request<{ hypothesis: any }>(`/api/research/hypotheses/${hypothesisId}/review`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function createResearchExperiment(
+  hypothesisId: string,
+  payload: {
+    requested_by_role?: string;
+    request_summary: string;
+    required_observations?: string[];
+    suggested_tasks?: any[];
+    expected_artifacts?: string[];
+    risk_level?: string;
+    approval_mode?: string;
+  },
+) {
+  return request<{ experiment_request: any }>(`/api/research/hypotheses/${hypothesisId}/experiments`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function approveResearchExperiment(experimentId: string, payload?: { approved_by?: string }) {
+  return request<{ experiment_request: any }>(`/api/research/experiments/${experimentId}/approve`, {
+    method: "POST",
+    body: JSON.stringify(payload || {}),
+  });
+}
+
+export function launchResearchExperiment(
+  experimentId: string,
+  payload?: { execution_profile?: string },
+) {
+  return request<{ experiment_request: any; experiment_result: any }>(`/api/research/experiments/${experimentId}/launch`, {
+    method: "POST",
+    body: JSON.stringify(payload || {}),
+  });
+}
+
 export function createApprovalScope(
   missionId: string,
   payload: {
