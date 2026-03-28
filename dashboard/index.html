@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw Ops Console</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="shell-glow"></div>
+    <div class="shell-grid"></div>
+    <main class="app-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <div class="eyebrow">AUTHORIZED OPERATION CONSOLE</div>
+          <h1>OpenClaw <span>Ops Console</span></h1>
+          <p>实用优先的内部控制台，面向授权团队的稳态与冲刺双模式操作面。</p>
+          <div class="hero-tags">
+            <span class="tag">SQLite/WAL</span>
+            <span class="tag">Steady / Rush</span>
+            <span class="tag">Kali Toolchain</span>
+          </div>
+        </div>
+        <div class="hero-crest">
+          <svg viewBox="0 0 220 220" aria-hidden="true">
+            <defs>
+              <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#a855f7" />
+                <stop offset="100%" stop-color="#38bdf8" />
+              </linearGradient>
+            </defs>
+            <circle cx="110" cy="110" r="92" class="crest-ring" />
+            <path class="crest-dragon" d="M67 138c12-31 35-63 68-74-10 10-12 20-8 27 9-2 22-1 31 7-12 1-22 8-28 17 12 0 20 5 24 15-9-4-20-4-29 0-9 4-17 12-22 24-4-9-12-14-23-16 8-4 13-10 16-18-11 5-22 8-29 18z" />
+            <path class="crest-radar" d="M110 55v55l39 24" />
+            <circle cx="110" cy="110" r="12" class="crest-core" />
+          </svg>
+        </div>
+      </header>
+
+      <section class="topbar">
+        <div class="mode-switch">
+          <button class="mode-btn active" data-profile="steady">Steady</button>
+          <button class="mode-btn" data-profile="rush">Rush</button>
+        </div>
+        <div class="view-switch">
+          <button class="view-btn active" data-view="mission">Mission</button>
+          <button class="view-btn" data-view="execution">Execution</button>
+          <button class="view-btn" data-view="catalog">Catalog</button>
+        </div>
+        <div class="status-pill" id="serverStatus">加载中</div>
+      </section>
+
+      <section class="panel-grid metrics-grid" id="metricsGrid"></section>
+
+      <section class="view-page active" data-view-page="mission">
+        <section class="panel-grid dual-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>任务意图输入</h2>
+                <p>输入情报、目标、技术问题或方向，让 command 先讨论并给出候选执行方案</p>
+              </div>
+              <div class="panel-head-actions">
+                <button class="collapse-btn" type="button" data-collapse-target="missionPanel">收起</button>
+                <div class="panel-icon">◇</div>
+              </div>
+            </div>
+            <div class="panel-body" id="missionPanel">
+              <form id="missionForm" class="mission-form">
+                <label class="wide">
+                  <span>自然语言情报 / 目标</span>
+                  <textarea id="missionInput" placeholder="例如：已拿到某个办公网段的一段情报，怀疑边界 Web 管理后台与内网 AD 存在联动。先讨论可能路径，再给我几个可执行的侦察与验证方案。"></textarea>
+                </label>
+                <div class="mission-actions">
+                  <button type="submit" class="action-btn">交给 Command 分析</button>
+                </div>
+              </form>
+              <div id="missionResult" class="inline-result"></div>
+              <div id="missionSummary" class="mission-summary"></div>
+              <div id="planList" class="plan-list"></div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>低层任务发布</h2>
+                <p>已明确目标时，直接下发稳态或冲刺任务</p>
+              </div>
+              <div class="panel-head-actions">
+                <button class="collapse-btn" type="button" data-collapse-target="publishPanel">收起</button>
+                <div class="panel-icon">⌁</div>
+              </div>
+            </div>
+            <div class="panel-body" id="publishPanel">
+              <form id="publishForm" class="publish-form">
+                <label>
+                  <span>能力类别</span>
+                  <select name="category" id="categorySelect"></select>
+                </label>
+                <label>
+                  <span>任务</span>
+                  <input name="task" placeholder="如 port-scan / passive-scan" required />
+                </label>
+                <label>
+                  <span>类型</span>
+                  <input name="type" value="task" />
+                </label>
+                <label>
+                  <span>执行方式</span>
+                  <select name="executionMode">
+                    <option value="agent_api">agent_api</option>
+                    <option value="local_tool">local_tool</option>
+                  </select>
+                </label>
+                <label>
+                  <span>工具</span>
+                  <input name="tool" placeholder="如 nmap / aircrack-ng" />
+                </label>
+                <label class="wide">
+                  <span>命令或参数 JSON</span>
+                  <textarea id="paramsBox" placeholder='{"target":"127.0.0.1","ports":"22,80,443"}'></textarea>
+                </label>
+                <label class="toggle">
+                  <input type="checkbox" name="interactive" />
+                  <span>交互式工具</span>
+                </label>
+                <label class="toggle">
+                  <input type="checkbox" name="secondaryConfirmation" />
+                  <span>高风险二次确认</span>
+                </label>
+                <button type="submit" class="action-btn">发布任务</button>
+              </form>
+              <div id="publishResult" class="inline-result"></div>
+            </div>
+          </article>
+        </section>
+      </section>
+
+      <section class="view-page" data-view-page="execution">
+        <section class="panel-grid dual-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>代理工作台</h2>
+                <p>按能力和执行代理查看状态、最近任务与心跳</p>
+              </div>
+              <div class="panel-head-actions">
+                <button class="collapse-btn" type="button" data-collapse-target="agentWorkbenchPanel">收起</button>
+                <div class="panel-icon">⌬</div>
+              </div>
+            </div>
+            <div class="panel-body" id="agentWorkbenchPanel">
+              <div id="agentWorkbench" class="agent-grid"></div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>结果浏览</h2>
+                <p>近期结果与执行摘要</p>
+              </div>
+              <div class="panel-head-actions">
+                <button class="collapse-btn" type="button" data-collapse-target="resultPanel">收起</button>
+                <div class="panel-icon">⬢</div>
+              </div>
+            </div>
+            <div class="panel-body" id="resultPanel">
+              <div id="resultList" class="stack-list"></div>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel-grid dual-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>最近任务</h2>
+                <p>数据库真源中的最近执行记录</p>
+              </div>
+              <div class="panel-head-actions">
+                <button class="collapse-btn" type="button" data-collapse-target="taskPanel">收起</button>
+                <div class="panel-icon">◈</div>
+              </div>
+            </div>
+            <div class="panel-body" id="taskPanel">
+              <div id="taskList" class="stack-list"></div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>日志与心跳</h2>
+                <p>类别日志和 worker 最近心跳</p>
+              </div>
+              <div class="panel-head-actions">
+                <button class="collapse-btn" type="button" data-collapse-target="workerPanel">收起</button>
+                <div class="panel-icon">⋄</div>
+              </div>
+            </div>
+            <div class="panel-body" id="workerPanel">
+              <div id="workerList" class="stack-list"></div>
+            </div>
+          </article>
+        </section>
+      </section>
+
+      <section class="view-page" data-view-page="catalog">
+        <section class="panel-grid dual-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>工具目录</h2>
+                <p>按档位检索可用工具与特殊工具</p>
+              </div>
+              <div class="panel-head-actions">
+                <button class="collapse-btn" type="button" data-collapse-target="toolPanel">收起</button>
+                <div class="panel-icon">⚙</div>
+              </div>
+            </div>
+            <div class="panel-body" id="toolPanel">
+              <div class="tool-toolbar">
+                <input id="toolSearch" placeholder="搜索工具、标签或策略" />
+                <label class="toggle compact">
+                  <input id="specialOnly" type="checkbox" />
+                  <span>仅特殊工具</span>
+                </label>
+              </div>
+              <div id="toolList" class="tool-list"></div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Recipe</h2>
+                <p>现有能力配方与策略</p>
+              </div>
+              <div class="panel-head-actions">
+                <button class="collapse-btn" type="button" data-collapse-target="recipePanel">收起</button>
+                <div class="panel-icon">⌘</div>
+              </div>
+            </div>
+            <div class="panel-body" id="recipePanel">
+              <div id="recipeList" class="recipe-list"></div>
+            </div>
+          </article>
+        </section>
+      </section>
+    </main>
+    <script src="./app.js" type="module"></script>
+  </body>
+  </html>

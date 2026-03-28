@@ -1,0 +1,11 @@
+{
+  "id": "common-safe",
+  "description": "low-risk local execution profile for read-only, non-interactive tooling",
+  "allowed_tools": ["nmap", "httpx", "whatweb", "dig", "curl", "ffuf", "gobuster"],
+  "forbidden_binaries": ["clash", "mihomo", "clash-verge", "clash-verge-rev"],
+  "forbid_interactive": true,
+  "allow_interactive_in_rush": false,
+  "require_secondary_confirmation": false,
+  "allow_high_risk_in_rush": false,
+  "protect_proxy_stack": true
+}

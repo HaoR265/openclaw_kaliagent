@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OpenClaw Policy v1",
+  "type": "object",
+  "required": ["id", "description"],
+  "properties": {
+    "id": { "type": "string" },
+    "description": { "type": "string" },
+    "allowed_tools": { "type": "array", "items": { "type": "string" } },
+    "forbidden_binaries": { "type": "array", "items": { "type": "string" } },
+    "forbid_interactive": { "type": "boolean" },
+    "allow_interactive_in_rush": { "type": "boolean" },
+    "require_secondary_confirmation": { "type": "boolean" },
+    "allow_high_risk_in_rush": { "type": "boolean" },
+    "requires_usb_wifi": { "type": "boolean" },
+    "allow_external_wifi_operations": { "type": "boolean" },
+    "forbid_connected_wifi_modification": { "type": "boolean" },
+    "protect_proxy_stack": { "type": "boolean" },
+    "execution_profiles": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["steady", "rush"]
+      }
+    }
+  }
+}

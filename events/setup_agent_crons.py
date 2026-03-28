@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 EVENTS_DIR = Path(__file__).parent
-AGENT_CONSUMER = EVENTS_DIR / "agent_consumer.py"
+WORKER = EVENTS_DIR / "worker.py"
 
 # 6个代理类别
 CATEGORIES = [
@@ -55,31 +55,31 @@ def main():
     print("为专业化攻击者代理设置cron作业")
     print("=" * 50)
     
-    if not AGENT_CONSUMER.exists():
-        print(f"错误: 消费者脚本不存在: {AGENT_CONSUMER}")
+    if not WORKER.exists():
+        print(f"错误: worker 脚本不存在: {WORKER}")
         sys.exit(1)
     
     # 获取当前crontab
     current_crontab = get_current_crontab()
     
-    # 移除现有的代理消费者cron作业（包括历史 consume.py 入口）
+    # 移除现有的代理消费者 cron 作业（包括历史 consume.py 入口和旧 agent_consumer.py 入口）
     lines = current_crontab.split('\n')
     new_lines = []
     
     for line in lines:
         # 保留不是代理消费者cron的行
-        if "agent_consumer.py" not in line and "events/consume.py" not in line:
+        if "agent_consumer.py" not in line and "events/consume.py" not in line and "worker.py" not in line:
             new_lines.append(line)
     
-    # 为每个代理添加cron作业
+    # 为每个代理添加 worker cron 作业
     print("添加cron作业:")
     for category in CATEGORIES:
-        cron_line = f"* * * * * cd {EVENTS_DIR} && /usr/bin/python3 {AGENT_CONSUMER} --category {category} >> {EVENTS_DIR}/{category}.log 2>&1\n"
+        cron_line = f"* * * * * cd {EVENTS_DIR} && /usr/bin/python3 {WORKER} --category {category} --once >> {EVENTS_DIR}/{category}.log 2>&1\n"
         new_lines.append(cron_line)
         print(f"  {category}: 每分钟检查一次")
     
     # 添加一个注释行
-    new_lines.append("# 专业化攻击者代理消费者 (6个类别)")
+    new_lines.append("# 专业化攻击者数据库 worker (6个类别)")
     
     # 构建新的crontab内容
     new_crontab = '\n'.join(new_lines).strip() + '\n'
@@ -95,12 +95,12 @@ def main():
     if set_crontab(new_crontab):
         print("\ncron作业设置成功!")
         print(f"日志文件将保存到: {EVENTS_DIR}/*.log")
-        print("\n代理启动后，将每分钟检查一次事件队列。")
+        print("\nworker 启动后，将每分钟检查一次 SQLite/JSONL 双轨队列。")
         
         # 显示测试命令
         print("\n测试命令:")
         for category in CATEGORIES:
-            print(f"  {category}: python3 {AGENT_CONSUMER} --category {category} --once")
+            print(f"  {category}: python3 {WORKER} --category {category} --once")
         
         # 显示监控命令
         print("\n监控命令:")

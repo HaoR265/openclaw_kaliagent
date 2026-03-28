@@ -5,6 +5,10 @@
 **状态**: 草案，可作为后续修改总蓝图  
 **定位**: 面向未来阶段的统一方案，整合 C 方案队列内核升级与 Kali 工具目录系统升级  
 
+> 边界说明：本文件后续主要负责“任务内核 / worker-executor / tool catalog-recipe-policy / 编排底座”。  
+> 与前端控制台、`commander/analyst`、自动化托管模式相关的新板块，已单独拆到 [OpenClaw-智能指挥与作战控制系统设计.md](/home/asus/.openclaw/OpenClaw-智能指挥与作战控制系统设计.md)。  
+> 与知识库、经验记忆、情报整理、研究分析相关的新板块，已单独拆到 [OpenClaw-情报、记忆与研究分析设计.md](/home/asus/.openclaw/OpenClaw-情报、记忆与研究分析设计.md)。
+
 ---
 
 ## 1. 文档目的
@@ -455,6 +459,68 @@ policy 必须被独立出来，不能继续散落在多个文档里。
 - 是否允许破坏性操作
 - 是否允许访问代理/代理配置
 
+### 6.7 双模式执行档位
+
+系统应长期支持两种执行档位：
+
+1. `steady`
+   - 默认档位
+   - 保留完整 policy、result、artifact、attempt 记录
+   - 适合常规运行、长期维护、赛后复盘
+
+2. `rush`
+   - 冲刺档位
+   - 只跳过非关键治理层，不改变总分 agent 结构和类别分工
+   - 允许减少非必要整理、兼容写入和冗余日志
+   - 对高风险或交互式工具，必须显式二次确认后才允许执行
+
+建议任务参数统一支持：
+
+- `executionProfile = steady | rush`
+- `secondaryConfirmation = true | false`
+- `interactive = true | false`
+
+其中 `rush` 不是“无约束模式”，只是在关键时刻压缩流程。
+
+#### 推荐切换方式
+
+1. 默认保持 `steady`
+2. 关键时刻只对单任务切到 `rush`
+3. 高风险或交互式工具必须同时满足：
+   - `executionProfile = rush`
+   - `secondaryConfirmation = true`
+   - 必要时显式标记 `interactive = true`
+
+#### 冲刺任务示例
+
+```bash
+cd ~/.openclaw/events && python3 publish.py \
+  --type assess \
+  --task passive-scan \
+  --category wireless \
+  --execution-profile rush \
+  --secondary-confirmation \
+  --interactive \
+  --params '{"executionMode":"local_tool","tool":"aircrack-ng","command":"aircrack-ng --help"}'
+```
+
+#### 工具检索示例
+
+```bash
+oc-toolfind all --profile steady recon
+oc-toolfind all --profile rush --special-only
+oc-toolfind all aircrack --profile rush
+```
+
+### 6.8 无线约束口径
+
+无线能力域的正式约束收敛为：
+
+- 严格不修改当前连接的内置 Wi-Fi 接口
+- 允许对外置 USB 无线网卡执行监控、注入和相关审计动作
+- 无线攻击与无线工具在授权内网环境中允许纳入正式能力范围
+- 如果工具被标记为高风险或交互式，则在 `rush` 档位下仍需二次确认
+
 #### `wireless-usb-only` 策略示意
 
 ```json
@@ -498,6 +564,32 @@ policy 必须被独立出来，不能继续散落在多个文档里。
 5. 汇总结构化结果
 
 `command` 不应直接决定某个具体二进制命令行，除非处于调试模式。
+在 `rush` 档位下，`command` 可以缩短推理链，但仍不应突破类别边界和最小状态记录。
+
+#### 7.2.1 `command` 的未来拆分方向
+
+当前阶段保持单一 `command` 足够，但后续如果自然语言讨论、方案分析、任务编排和跨模块协调持续变重，建议拆成两个并排协作角色：
+
+1. `commander`
+   - 面向用户自然语言输入
+   - 负责识别意图、组织对话、协调模块输出
+   - 负责最终拍板任务编排与发布
+   - 负责协调 offense / defense / toolchain 的整体节奏
+
+2. `analyst`
+   - 偏研究与分析
+   - 负责收集情报、读取结果、关联历史数据
+   - 负责从未来知识库中检索经典打法、场景思路、技术方案
+   - 负责给 `commander` 提供候选作战路径、前提条件和推理支撑
+
+拆分后仍保持原则：
+
+- `commander` 不直接执行
+- `analyst` 不直接执行
+- 最终仍由 `commander -> task kernel -> workers` 发布与驱动
+- 前端上两者应当并排展示，便于一边讨论、一边看分析结论
+- `analyst` 可以长时间占用在分析、检索、归纳上，而不阻塞 `commander` 对用户输入和现场指令的快速响应
+- 角色拆分的一个核心动因，就是避免“用户正在下达新命令时，分析线程还卡在资料检索或长链推理中”
 
 ### 7.3 `offense-*` 的职责
 
@@ -766,6 +858,35 @@ Webhook 和 dashboard 不应该先做。
 - 检索与实体关联
 - 视需求进入多节点
 
+阶段 F 当前只作为后续正式计划入口，不在本轮实现中提前落地知识库。
+
+建议在该阶段内进一步拆出三个子方向：
+
+1. `F-1` 经验与情报记忆
+   - 记录比赛中的攻击经验、分析经验、场景拆解
+   - 整理最新公开情报、常见进攻思路、优秀攻击链路样例
+   - 供 `analyst` 检索与归纳，不直接替代当前任务内核
+
+2. `F-2` 角色拆分
+   - 将现有 `command` 拆成 `commander + analyst`
+   - `commander` 主对话与任务编排
+   - `analyst` 主情报检索、知识归纳、方案支撑
+   - 前端将两者做成并排工作台
+
+3. `F-3` 模式扩展
+   - 在现有 `steady / rush` 之外，规划 `defense` 模式开关
+   - `defense` 模式先从周期性本地扫描、状态巡检开始
+   - 后续再视需要扩展到主动防御能力
+
+其中：
+
+- `rush` 的未来增强方向可以包括“目标驱动的自动化托管模式”
+- 这种模式不等于普通 `rush`，也不等于简单放宽策略；它更接近“用户只给阶段性目标，系统持续自行规划、尝试和推进”
+- 该模式必须保留严格日志、完整过程记录和清晰的高风险工具授权边界
+- 进入该模式前，应弹出高风险/特殊/冷门工具授权清单，由用户勾选批准哪些工具可自动纳入尝试范围
+- 未被勾选批准的高风险工具，即使在自动化托管模式下也不得使用
+- `defense` 模式目前只进入路线图，不在本轮正式实现
+
 ---
 
 ## 13. 对现有代码的修改映射
@@ -1026,6 +1147,7 @@ Webhook 和 dashboard 不应该先做。
 
 - `oc-toolfind` 支持按 `tags`、`protocols`、`target_types`、`risk_level` 搜索
 - `oc-toolcat` 支持输出工具详情、recipe 关联、policy 关联
+- `oc-toolfind` 支持按执行档位和风险级别筛选冷门/特殊工具
 
 **验证标准**:
 
@@ -1057,6 +1179,34 @@ Webhook 和 dashboard 不应该先做。
 
 - 仓库中不再把 `JSONL` 描述为未来正式主真源
 - v2 路径与旧兼容路径边界清晰
+
+### WP-8: 双模式与特殊工具接入
+
+**目标**:
+
+- 让系统在稳态模式和冲刺模式之间可控切换
+- 将冷门但有特殊价值的工具纳入正式目录，但受模式与策略约束
+
+**修改文件建议**:
+
+- `events/policies.py`
+- `events/executors/local_tool.py`
+- `events/worker.py`
+- `agent-kits/policies/*.json`
+- `agent-kits/cmd-special/catalog/*.json`
+
+**交付要求**:
+
+- 默认执行档位为 `steady`
+- `rush` 档位下允许特定高风险或交互式工具，但必须显式二次确认
+- 无线域只保护内置网卡，允许外置 USB 网卡相关操作
+- 稀有/特殊工具进入正式目录，并具备明确 `risk_level` 与 `policy_refs`
+
+**验证标准**:
+
+- 同一能力任务可在 `steady` 和 `rush` 下按不同策略执行
+- 未带确认标记的高风险交互式工具在 `rush` 下仍会被阻断
+- 冷门工具可被检索、分类和受策略控制地调用
 
 ### 推荐执行顺序
 

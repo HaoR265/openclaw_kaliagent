@@ -1,24 +1,18 @@
 {
   "version": 1,
   "profiles": {
-    "deepseek:offense": {
+    "deepseek:offense-wireless": {
       "provider": "deepseek",
       "mode": "api_key",
       "keyRef": {
         "source": "env",
         "provider": "default",
-        "id": "DEEPSEEK_API_KEY_OFFENSE"
+        "id": "DEEPSEEK_API_KEY_WIRELESS"
       },
       "type": "api_key"
     }
   },
   "lastGood": {
-    "deepseek": "deepseek:offense"
-  },
-  "usageStats": {
-    "deepseek:offense": {
-      "errorCount": 0,
-      "lastUsed": 1774516709841
-    }
+    "deepseek": "deepseek:offense-wireless"
   }
 }

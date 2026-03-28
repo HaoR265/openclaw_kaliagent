@@ -1,0 +1,10 @@
+{
+  "id": "rush-confirmed",
+  "description": "rush-mode profile that permits selected high-risk or interactive tooling only after explicit secondary confirmation",
+  "forbid_interactive": true,
+  "allow_interactive_in_rush": true,
+  "require_secondary_confirmation": true,
+  "allow_high_risk_in_rush": true,
+  "protect_proxy_stack": true,
+  "execution_profiles": ["rush"]
+}

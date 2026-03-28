@@ -5,12 +5,15 @@
 """
 
 import json
+import os
 import sys
 import argparse
 from datetime import datetime, timezone, date
 from pathlib import Path
 import fcntl
 import time
+
+from db import update_task_state_from_legacy
 
 EVENTS_DIR = Path(__file__).parent
 
@@ -80,6 +83,16 @@ def load_apis_config():
         print(f"API 配置文件解析失败: {apis_file}")
         return {}
 
+
+def resolve_api_key(value):
+    """支持 ${ENV_VAR} 占位符，避免在仓库中保存明文密钥。"""
+    if not value:
+        return None
+    if isinstance(value, str) and value.startswith("${") and value.endswith("}"):
+        env_name = value[2:-1]
+        return os.environ.get(env_name)
+    return value
+
 def call_category_api(category, event, max_retries=2):
     """调用类别对应的 DeepSeek Beta API（从 consume.py 复制并修改）"""
     # 尝试导入 requests
@@ -96,10 +109,14 @@ def call_category_api(category, event, max_retries=2):
         return None
     
     config = apis[category]
-    api_key = config.get("api_key")
+    api_key = resolve_api_key(config.get("api_key"))
     base_url = config.get("base_url", "https://api.deepseek.com/beta")
     endpoint = config.get("endpoint", "/chat/completions")
     model = config.get("model", "deepseek-chat")
+
+    if not api_key:
+        print(f"类别 '{category}' 缺少可用 API 密钥，请检查环境变量或 apis.json 占位符配置")
+        return None
     
     # 构建请求 URL
     url = base_url.rstrip("/") + endpoint
@@ -287,6 +304,7 @@ def main():
                     print(f"无法更新事件状态: {event_id}")
                     continue
                 save_events(events)
+                update_task_state_from_legacy(event_id, "processing")
                 
                 # 释放锁，允许其他代理处理其他事件
                 fcntl.flock(lock, fcntl.LOCK_UN)
@@ -306,6 +324,11 @@ def main():
                     events = load_events()
                     update_event_status(event_id, final_status, events)
                     save_events(events)
+                update_task_state_from_legacy(
+                    event_id,
+                    final_status,
+                    error_message=result.get("message") if isinstance(result, dict) else None,
+                )
                 
                 # 写入结果
                 raw_data = {

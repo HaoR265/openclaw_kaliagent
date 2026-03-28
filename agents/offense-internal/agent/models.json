@@ -45,7 +45,7 @@
           }
         }
       ],
-      "apiKey": "sk-52bcfb2cd5964eae98751e023d7d74bb"
+      "apiKey": "${DEEPSEEK_API_KEY_INTERNAL}"
     }
   }
 }

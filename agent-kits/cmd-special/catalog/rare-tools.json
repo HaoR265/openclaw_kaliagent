@@ -1,37 +1,12 @@
 {
   "catalog": "command-rare",
   "items": [
-    {
-      "name": "john-extractors",
-      "category": "rare-password-prep",
-      "summary": "format-specific helper commands that prepare inputs for John",
-      "members": [
-        "1password2john","7z2john","adxcsouf2john","aem2john","aix2john","andotp2john",
-        "androidbackup2john","androidfde2john","ansible2john","apex2john","applenotes2john",
-        "aruba2john","atmail2john","axcrypt2john","bestcrypt2john","bitcoin2john",
-        "bitlocker2john","bitshares2john","bitwarden2john","bks2john","blockchain2john",
-        "ccache2john","cisco2john","cracf2john","dashlane2john","deepsound2john",
-        "diskcryptor2john","dmg2john","DPAPImk2john","eapmd5tojohn","ecryptfs2john",
-        "ejabberd2john","electrum2john","encfs2john","enpass2john","enpass5tojohn",
-        "ethereum2john","filezilla2john","geli2john","gpg2john","hccap2john","hccapx2john",
-        "htdigest2john","ibmiscanner2john","ikescan2john","ios7tojohn","itunes_backup2john",
-        "iwork2john","kdcdump2john","keepass2john","keychain2john","keyring2john","keystore2john"
-      ]
-    },
-    {
-      "name": "impacket-rare",
-      "category": "rare-directory-special",
-      "summary": "special-purpose impacket commands kept out of the normal offense front catalog",
-      "members": [
-        "impacket-atexec","impacket-dcomexec","impacket-ntlmrelayx","impacket-psexec",
-        "impacket-raiseChild","impacket-rbcd","impacket-secretsdump",
-        "impacket-ticketer","impacket-wmiexec","impacket-wmipersist"
-      ]
-    },
-    {"name":"wireless-special","category":"rare-wireless","summary":"wireless assessment tooling","members":["aircrack-ng"]},
-    {"name":"network-active-special","category":"rare-network","summary":"network interception and active-response tooling","members":["ettercap"]},
-    {"name":"container-special","category":"rare-container","summary":"container and compose tooling","members":["docker","docker-compose"]},
-    {"name":"reverse-special","category":"rare-reverse","summary":"secondary reverse engineering helpers","members":["gdbserver","r2agent","r2pm","r2r","r2sdb"]},
-    {"name":"reference-special","category":"rare-reference","summary":"reference and exploit index material","members":["exploitdb"]}
+    {"id":"tool.john-extractors","name":"john-extractors","category":"rare-password-prep","summary":"format-specific helper commands that prepare inputs for John","tags":["passwords","extractors"],"target_types":["file"],"requires_sudo":false,"interactive":false,"read_only":true,"destructive":false,"risk_level":"medium","default_timeout_seconds":900,"policy_refs":["common-safe"],"members":["1password2john","7z2john","adxcsouf2john","aem2john","aix2john","andotp2john","androidbackup2john","androidfde2john","ansible2john","apex2john","applenotes2john","aruba2john","atmail2john","axcrypt2john","bestcrypt2john","bitcoin2john","bitlocker2john","bitshares2john","bitwarden2john","bks2john","blockchain2john","ccache2john","cisco2john","cracf2john","dashlane2john","deepsound2john","diskcryptor2john","dmg2john","DPAPImk2john","eapmd5tojohn","ecryptfs2john","ejabberd2john","electrum2john","encfs2john","enpass2john","enpass5tojohn","ethereum2john","filezilla2john","geli2john","gpg2john","hccap2john","hccapx2john","htdigest2john","ibmiscanner2john","ikescan2john","ios7tojohn","itunes_backup2john","iwork2john","kdcdump2john","keepass2john","keychain2john","keyring2john","keystore2john"]},
+    {"id":"tool.impacket-rare","name":"impacket-rare","category":"rare-directory-special","summary":"special-purpose impacket commands kept out of the normal offense front catalog","tags":["ad","impacket","high-risk"],"target_types":["host","domain"],"requires_sudo":false,"interactive":false,"read_only":false,"destructive":true,"risk_level":"high","default_timeout_seconds":1800,"policy_refs":["common-safe"],"members":["impacket-atexec","impacket-dcomexec","impacket-ntlmrelayx","impacket-psexec","impacket-raiseChild","impacket-rbcd","impacket-secretsdump","impacket-ticketer","impacket-wmiexec","impacket-wmipersist"]},
+    {"id":"tool.wireless-special","name":"wireless-special","category":"rare-wireless","summary":"wireless assessment tooling","tags":["wireless"],"target_types":["interface"],"requires_sudo":true,"interactive":false,"read_only":false,"destructive":true,"risk_level":"high","default_timeout_seconds":1800,"policy_refs":["wireless-usb-only"],"members":["aircrack-ng"]},
+    {"id":"tool.network-active-special","name":"network-active-special","category":"rare-network","summary":"network interception and active-response tooling","tags":["network","active"],"target_types":["interface"],"requires_sudo":true,"interactive":false,"read_only":false,"destructive":true,"risk_level":"high","default_timeout_seconds":1800,"policy_refs":["common-safe"],"members":["ettercap"]},
+    {"id":"tool.container-special","name":"container-special","category":"rare-container","summary":"container and compose tooling","tags":["container"],"target_types":["host"],"requires_sudo":false,"interactive":false,"read_only":false,"destructive":false,"risk_level":"medium","default_timeout_seconds":1200,"policy_refs":["proxy-protected"],"members":["docker","docker-compose"]},
+    {"id":"tool.reverse-special","name":"reverse-special","category":"rare-reverse","summary":"secondary reverse engineering helpers","tags":["reverse"],"target_types":["binary","file"],"requires_sudo":false,"interactive":true,"read_only":false,"destructive":false,"risk_level":"medium","default_timeout_seconds":1800,"policy_refs":["common-safe"],"members":["gdbserver","r2agent","r2pm","r2r","r2sdb"]},
+    {"id":"tool.reference-special","name":"reference-special","category":"rare-reference","summary":"reference and exploit index material","tags":["reference","exploitdb"],"target_types":["query"],"requires_sudo":false,"interactive":false,"read_only":true,"destructive":false,"risk_level":"low","default_timeout_seconds":300,"policy_refs":["common-safe"],"members":["exploitdb"]}
   ]
 }

@@ -1,0 +1,12 @@
+{
+  "id": "recipe.wireless.passive-scan",
+  "capability": "wireless",
+  "operation": "passive-scan",
+  "primary_tool": "tool.aircrack-ng",
+  "tool_bin": "aircrack-ng",
+  "allowed_tools": ["aircrack-ng"],
+  "command_template": "aircrack-ng --help",
+  "input_schema": {},
+  "policy_refs": ["wireless-usb-only"],
+  "artifact_rules": ["stdout-log", "stderr-log"]
+}

@@ -13,8 +13,9 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import uuid
 from contextlib import contextmanager
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 EVENTS_DIR = Path(__file__).parent
@@ -139,6 +140,73 @@ def insert_task(event: dict) -> None:
         )
 
 
+def update_task_state_from_legacy(
+    task_id: str,
+    legacy_status: str,
+    error_message: str | None = None,
+) -> None:
+    """让旧 JSONL 消费者也能同步数据库状态，降低双轨期重复执行风险。"""
+    state_map = {
+        "pending": "queued",
+        "processing": "running",
+        "completed": "succeeded",
+        "failed": "failed",
+    }
+    state = state_map.get(legacy_status, "queued")
+    timestamp = now_iso()
+
+    with transaction() as conn:
+        if state == "running":
+            conn.execute(
+                """
+                UPDATE tasks
+                SET state = 'running',
+                    started_at = COALESCE(started_at, ?)
+                WHERE id = ?
+                """,
+                (timestamp, task_id),
+            )
+        elif state in {"succeeded", "failed"}:
+            conn.execute(
+                """
+                UPDATE tasks
+                SET state = ?,
+                    completed_at = ?,
+                    lease_owner = NULL,
+                    lease_expires_at = NULL,
+                    last_error_message = ?
+                WHERE id = ?
+                """,
+                (state, timestamp, error_message, task_id),
+            )
+        else:
+            conn.execute(
+                "UPDATE tasks SET state = ? WHERE id = ?",
+                (state, task_id),
+            )
+
+
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _json_payload_to_legacy_event(row: sqlite3.Row) -> dict:
+    payload = json.loads(row["payload_json"])
+    return {
+        "id": row["id"],
+        "type": payload.get("type"),
+        "agent": payload.get("agent"),
+        "task": payload.get("task") or row["operation"],
+        "params": payload.get("params", {}),
+        "category": payload.get("legacyCategory", row["capability"]),
+        "createdAt": row["created_at"],
+        "processedAt": row["started_at"],
+        "completedAt": row["completed_at"],
+        "retryCount": row["attempt_count"],
+        "maxRetries": row["max_attempts"],
+    }
+
+
 def fetch_task_stats() -> dict:
     with get_connection() as conn:
         states = {
@@ -174,6 +242,272 @@ def fetch_task_stats() -> dict:
             "by_capability": by_capability,
             "latest": latest,
         }
+
+
+def register_worker(worker_id: str, agent_id: str, capabilities: list[str]) -> None:
+    with transaction() as conn:
+        conn.execute(
+            """
+            INSERT INTO workers (
+                id, agent_id, capabilities_json, hostname, pid, last_heartbeat_at, status
+            ) VALUES (?, ?, ?, '', NULL, ?, 'online')
+            ON CONFLICT(id) DO UPDATE SET
+                agent_id = excluded.agent_id,
+                capabilities_json = excluded.capabilities_json,
+                last_heartbeat_at = excluded.last_heartbeat_at,
+                status = 'online'
+            """,
+            (worker_id, agent_id, json.dumps(capabilities, ensure_ascii=False), now_iso()),
+        )
+
+
+def heartbeat_worker(worker_id: str) -> None:
+    with transaction() as conn:
+        conn.execute(
+            """
+            UPDATE workers
+            SET last_heartbeat_at = ?, status = 'online'
+            WHERE id = ?
+            """,
+            (now_iso(), worker_id),
+        )
+
+
+def mark_worker_offline(worker_id: str) -> None:
+    with transaction() as conn:
+        conn.execute(
+            """
+            UPDATE workers
+            SET last_heartbeat_at = ?, status = 'offline'
+            WHERE id = ?
+            """,
+            (now_iso(), worker_id),
+        )
+
+
+def claim_next_task(capability: str, worker_id: str, lease_seconds: int = 120) -> dict | None:
+    lease_expires_at = (
+        datetime.now(timezone.utc) + timedelta(seconds=lease_seconds)
+    ).isoformat()
+
+    with get_connection() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute(
+            """
+            SELECT *
+            FROM tasks
+            WHERE capability = ?
+              AND (
+                state = 'queued'
+                OR (
+                  state = 'retry_wait'
+                  AND (schedule_at IS NULL OR schedule_at <= ?)
+                )
+              )
+            ORDER BY priority DESC, created_at ASC
+            LIMIT 1
+            """,
+            (capability, now_iso()),
+        ).fetchone()
+
+        if row is None:
+            conn.commit()
+            return None
+
+        conn.execute(
+            """
+            UPDATE tasks
+            SET state = 'leased',
+                lease_owner = ?,
+                lease_expires_at = ?,
+                last_error_code = NULL,
+                last_error_message = NULL
+            WHERE id = ?
+            """,
+            (worker_id, lease_expires_at, row["id"]),
+        )
+        conn.commit()
+        return dict(row)
+
+
+def mark_task_running(task_id: str, worker_id: str, executor_type: str = "agent_api", tool_name: str | None = None) -> str:
+    attempt_id = str(uuid.uuid4())
+    started_at = now_iso()
+    with transaction() as conn:
+        conn.execute(
+            """
+            UPDATE tasks
+            SET state = 'running',
+                started_at = COALESCE(started_at, ?),
+                lease_owner = ?
+            WHERE id = ?
+            """,
+            (started_at, worker_id, task_id),
+        )
+        conn.execute(
+            """
+            INSERT INTO task_attempts (
+                id, task_id, worker_id, executor_type, tool_name,
+                started_at, ended_at, outcome, exit_code,
+                error_code, error_message, raw_output_ref
+            ) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, NULL, NULL, NULL, NULL)
+            """,
+            (attempt_id, task_id, worker_id, executor_type, tool_name, started_at, "running"),
+        )
+    return attempt_id
+
+
+def complete_task(task_id: str, attempt_id: str, status: str, error_message: str | None = None) -> None:
+    completed_at = now_iso()
+    outcome = "success" if status == "succeeded" else "failed"
+    with transaction() as conn:
+        conn.execute(
+            """
+            UPDATE tasks
+            SET state = ?,
+                completed_at = ?,
+                lease_owner = NULL,
+                lease_expires_at = NULL,
+                last_error_message = ?
+            WHERE id = ?
+            """,
+            (status, completed_at, error_message, task_id),
+        )
+        conn.execute(
+            """
+            UPDATE task_attempts
+            SET ended_at = ?, outcome = ?, error_message = COALESCE(?, error_message)
+            WHERE id = ?
+            """,
+            (completed_at, outcome, error_message, attempt_id),
+        )
+
+
+def update_attempt_metadata(
+    attempt_id: str,
+    executor_type: str,
+    tool_name: str | None = None,
+    exit_code: int | None = None,
+    error_code: str | None = None,
+    error_message: str | None = None,
+) -> None:
+    with transaction() as conn:
+        conn.execute(
+            """
+            UPDATE task_attempts
+            SET executor_type = ?,
+                tool_name = COALESCE(?, tool_name),
+                exit_code = COALESCE(?, exit_code),
+                error_code = COALESCE(?, error_code),
+                error_message = COALESCE(?, error_message)
+            WHERE id = ?
+            """,
+            (executor_type, tool_name, exit_code, error_code, error_message, attempt_id),
+        )
+
+
+def schedule_retry(task_id: str, attempt_id: str, error_message: str | None = None, delay_seconds: int = 30) -> None:
+    retry_at = (datetime.now(timezone.utc) + timedelta(seconds=delay_seconds)).isoformat()
+    completed_at = now_iso()
+    with transaction() as conn:
+        row = conn.execute(
+            "SELECT attempt_count, max_attempts FROM tasks WHERE id = ?",
+            (task_id,),
+        ).fetchone()
+        next_attempt_count = row["attempt_count"] + 1
+        next_state = "retry_wait" if next_attempt_count < row["max_attempts"] else "dead_letter"
+        conn.execute(
+            """
+            UPDATE tasks
+            SET state = ?,
+                attempt_count = ?,
+                schedule_at = CASE WHEN ? = 'retry_wait' THEN ? ELSE NULL END,
+                lease_owner = NULL,
+                lease_expires_at = NULL,
+                completed_at = CASE WHEN ? = 'dead_letter' THEN ? ELSE completed_at END,
+                last_error_message = ?
+            WHERE id = ?
+            """,
+            (
+                next_state,
+                next_attempt_count,
+                next_state,
+                retry_at,
+                next_state,
+                completed_at,
+                error_message,
+                task_id,
+            ),
+        )
+        conn.execute(
+            """
+            UPDATE task_attempts
+            SET ended_at = ?, outcome = 'failed', error_message = COALESCE(?, error_message)
+            WHERE id = ?
+            """,
+            (completed_at, error_message, attempt_id),
+        )
+
+
+def fetch_legacy_event(task_id: str) -> dict | None:
+    with get_connection() as conn:
+        row = conn.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+        if row is None:
+            return None
+        return _json_payload_to_legacy_event(row)
+
+
+def upsert_result(task_id: str, status: str, summary: dict, structured_result: dict) -> None:
+    with transaction() as conn:
+        conn.execute(
+            """
+            INSERT INTO results(task_id, status, summary_json, structured_json, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(task_id) DO UPDATE SET
+                status = excluded.status,
+                summary_json = excluded.summary_json,
+                structured_json = excluded.structured_json,
+                created_at = excluded.created_at
+            """,
+            (
+                task_id,
+                status,
+                json.dumps(summary, ensure_ascii=False),
+                json.dumps(structured_result, ensure_ascii=False),
+                now_iso(),
+            ),
+        )
+    try:
+        from knowledge.writeback import write_result_to_knowledge
+
+        write_result_to_knowledge(
+            task_id=task_id,
+            status=status,
+            summary=summary,
+            structured_result=structured_result,
+        )
+    except Exception:
+        pass
+
+
+def insert_artifact(task_id: str, kind: str, path: str, mime_type: str | None = None) -> None:
+    artifact_path = Path(path)
+    with transaction() as conn:
+        conn.execute(
+            """
+            INSERT INTO artifacts(id, task_id, kind, path, mime_type, size_bytes, sha256, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, NULL, ?)
+            """,
+            (
+                str(uuid.uuid4()),
+                task_id,
+                kind,
+                path,
+                mime_type,
+                artifact_path.stat().st_size if artifact_path.exists() else None,
+                now_iso(),
+            ),
+        )
 
 
 def db_ready() -> bool:

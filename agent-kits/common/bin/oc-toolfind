@@ -19,7 +19,11 @@ def match_item(item, q):
         item.get("category", ""),
         item.get("bin", ""),
         item.get("summary", ""),
-        " ".join(item.get("members", []))
+        " ".join(item.get("members", [])),
+        " ".join(item.get("tags", [])),
+        " ".join(item.get("target_types", [])),
+        item.get("risk_level", ""),
+        " ".join(item.get("policy_refs", [])),
     ]
     return q in " ".join(fields).lower()
 
@@ -27,6 +31,10 @@ ap = argparse.ArgumentParser(description="Search agent tool catalogs")
 ap.add_argument("role", choices=["offense", "defense", "command-rare", "all"])
 ap.add_argument("query", nargs="?", default="")
 ap.add_argument("--category", default="")
+ap.add_argument("--risk-level", default="")
+ap.add_argument("--target-type", default="")
+ap.add_argument("--profile", choices=["steady", "rush"], default="")
+ap.add_argument("--special-only", action="store_true")
 args = ap.parse_args()
 
 paths = list(CATALOGS.values()) if args.role == "all" else [CATALOGS[args.role]]
@@ -35,6 +43,14 @@ for p in paths:
     data = load(p)
     for item in data.get("items", []):
         if args.category and item.get("category") != args.category:
+            continue
+        if args.risk_level and item.get("risk_level") != args.risk_level:
+            continue
+        if args.target_type and args.target_type not in item.get("target_types", []):
+            continue
+        if args.special_only and not item.get("category", "").startswith("rare-"):
+            continue
+        if args.profile == "steady" and (item.get("risk_level") == "high" or item.get("interactive")):
             continue
         if args.query and not match_item(item, args.query):
             continue
@@ -46,6 +62,9 @@ for catalog, item in hits:
         line += f" :: {item.get('bin')}"
     print(line)
     print(f"  {item.get('summary', '')}")
+    if item.get("risk_level"):
+        print(f"  risk: {item.get('risk_level')} | targets: {', '.join(item.get('target_types', []))}")
+    print(f"  interactive: {item.get('interactive', False)} | policies: {', '.join(item.get('policy_refs', []))}")
     if item.get("members"):
         preview = ", ".join(item["members"][:12])
         more = "" if len(item["members"]) <= 12 else f" ... (+{len(item['members'])-12} more)"

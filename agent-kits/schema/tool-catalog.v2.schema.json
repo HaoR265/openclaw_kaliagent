@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OpenClaw Tool Catalog v2",
+  "type": "object",
+  "required": ["catalog", "items"],
+  "properties": {
+    "catalog": { "type": "string" },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "category",
+          "summary",
+          "tags",
+          "target_types",
+          "requires_sudo",
+          "interactive",
+          "read_only",
+          "destructive",
+          "risk_level",
+          "default_timeout_seconds",
+          "policy_refs"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "category": { "type": "string" },
+          "bin": { "type": "string" },
+          "summary": { "type": "string" },
+          "aliases": { "type": "array", "items": { "type": "string" } },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "target_types": { "type": "array", "items": { "type": "string" } },
+          "requires_sudo": { "type": "boolean" },
+          "interactive": { "type": "boolean" },
+          "read_only": { "type": "boolean" },
+          "destructive": { "type": "boolean" },
+          "risk_level": { "type": "string", "enum": ["low", "medium", "high"] },
+          "default_timeout_seconds": { "type": "integer", "minimum": 1 },
+          "policy_refs": { "type": "array", "items": { "type": "string" } },
+          "members": { "type": "array", "items": { "type": "string" } }
+        },
+        "anyOf": [
+          { "required": ["bin"] },
+          { "required": ["members"] }
+        ]
+      }
+    }
+  }
+}

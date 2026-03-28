@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OpenClaw Recipe v1",
+  "type": "object",
+  "required": [
+    "id",
+    "capability",
+    "operation",
+    "primary_tool",
+    "tool_bin",
+    "allowed_tools",
+    "command_template",
+    "input_schema",
+    "policy_refs",
+    "artifact_rules"
+  ],
+  "properties": {
+    "id": { "type": "string" },
+    "capability": { "type": "string" },
+    "operation": { "type": "string" },
+    "primary_tool": { "type": "string" },
+    "tool_bin": { "type": "string" },
+    "allowed_tools": { "type": "array", "items": { "type": "string" } },
+    "command_template": { "type": "string" },
+    "input_schema": { "type": "object" },
+    "policy_refs": { "type": "array", "items": { "type": "string" } },
+    "artifact_rules": { "type": "array", "items": { "type": "string" } }
+  }
+}

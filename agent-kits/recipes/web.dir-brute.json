@@ -1,0 +1,16 @@
+{
+  "id": "recipe.web.dir-brute",
+  "capability": "web",
+  "operation": "dir-brute",
+  "primary_tool": "tool.ffuf",
+  "tool_bin": "ffuf",
+  "allowed_tools": ["ffuf", "gobuster"],
+  "command_template": "ffuf -u {url}/FUZZ -w {wordlist} -t {threads}",
+  "input_schema": {
+    "url": { "type": "string", "required": true },
+    "wordlist": { "type": "string", "required": false, "default": "/usr/share/wordlists/dirb/common.txt" },
+    "threads": { "type": "integer", "required": false, "default": 10 }
+  },
+  "policy_refs": ["common-safe"],
+  "artifact_rules": ["stdout-log", "stderr-log"]
+}

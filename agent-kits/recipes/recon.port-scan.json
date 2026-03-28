@@ -1,0 +1,15 @@
+{
+  "id": "recipe.recon.port-scan",
+  "capability": "recon",
+  "operation": "port-scan",
+  "primary_tool": "tool.nmap",
+  "tool_bin": "nmap",
+  "allowed_tools": ["nmap"],
+  "command_template": "nmap -sS -sV -Pn -p {ports} {target}",
+  "input_schema": {
+    "target": { "type": "string", "required": true },
+    "ports": { "type": "string", "required": false, "default": "top-100" }
+  },
+  "policy_refs": ["common-safe"],
+  "artifact_rules": ["stdout-log", "stderr-log"]
+}

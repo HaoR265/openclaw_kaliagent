@@ -1,0 +1,7 @@
+{
+  "id": "proxy-protected",
+  "description": "protect clash/mihomo related processes and configuration from task execution",
+  "forbidden_binaries": ["clash", "mihomo", "clash-verge", "clash-verge-rev"],
+  "forbid_interactive": true,
+  "protect_proxy_stack": true
+}

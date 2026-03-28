@@ -14,9 +14,9 @@
 
 ### 正式基线
 - 正式代理总数为 8 个：`command`、`defense` 与 6 个 `offense-*` 专业攻击代理
-- 正式执行路径为事件驱动队列：发布到 `tasks-YYYY-MM-DD.jsonl`，由 `events/agent_consumer.py` 按类别消费
+- 当前正式执行路径为事件驱动队列：发布到 SQLite/WAL 真源并镜像写入 `tasks-YYYY-MM-DD.jsonl`，由 `events/worker.py` 按类别消费
 - `openclaw agent --agent offense-*` 仅保留为调试或应急入口，不作为默认执行路径
-- 旧共享 `offense` 路径与历史 `consume.py` 实现已退出正式结构，不再代表当前正式架构
+- `events/agent_consumer.py`、旧共享 `offense` 路径与历史 `consume.py` 实现已进入兼容/退役过渡，不再代表未来正式架构
 
 ### 项目状态
 | 模块 | 状态 | 说明 |
@@ -63,16 +63,23 @@
 说明：系统包含 8 个正式代理，其中 6 个为专业攻击代理。
 
 ### 技术栈
-- **队列存储**: JSONL分片文件（按日期）
-- **处理引擎**: Python消费者脚本 + Cron调度
+- **队列存储**: SQLite/WAL 真源 + JSONL 兼容镜像
+- **处理引擎**: Python worker + Cron调度（过渡期）
 - **通信协议**: 自定义事件协议（JSON格式）
 - **监控系统**: 状态脚本 + 存储监控 + 健康检查
 - **工具管理**: 智能工具发现 + 安全约束执行
+- **前端控制台**: 原生静态页面 + Python HTTP API
 
 ## 🚀 快速开始
 
 ### 1. 环境检查
 ```bash
+# 设置分类 API 密钥（示例）
+export DEEPSEEK_API_KEY_RECON="..."
+export DEEPSEEK_API_KEY_WEB="..."
+export DEEPSEEK_API_KEY_COMMAND="..."
+export DEEPSEEK_API_KEY_DEFENSE="..."
+
 # 检查Gateway状态
 openclaw gateway status
 
@@ -83,6 +90,8 @@ openclaw agents list
 cd ~/.openclaw/events && python3 status.py
 ```
 
+可直接参考本地模板文件：[.env.deepseek.example](/home/asus/.openclaw/.env.deepseek.example)
+
 ### 2. 发布测试任务
 ```bash
 # 发布端口扫描任务
@@ -91,6 +100,16 @@ cd ~/.openclaw/events && python3 publish.py \
   --task port-scan \
   --category recon \
   --params '{"target":"127.0.0.1","ports":"22,80,443"}'
+
+# 发布冲刺模式任务（高风险/交互式工具需显式二次确认）
+cd ~/.openclaw/events && python3 publish.py \
+  --type assess \
+  --task passive-scan \
+  --category wireless \
+  --execution-profile rush \
+  --secondary-confirmation \
+  --interactive \
+  --params '{"executionMode":"local_tool","tool":"aircrack-ng","command":"aircrack-ng --help"}'
 ```
 
 ### 3. 监控任务执行
@@ -103,13 +122,31 @@ tail -f recon.log
 
 # 查看结果
 grep "事件ID" results.jsonl
+
+# 启动内部控制台
+cd ~/.openclaw && DEEPSEEK_API_KEY_COMMAND="..." python3 dashboard/server.py --host 127.0.0.1 --port 8787
 ```
 
-### 4. 工具发现和使用
+然后在浏览器打开 `http://127.0.0.1:8787`。
+
+说明：
+- `dashboard/server.py` 现在会优先服务 `dashboard-ui/dist` 中构建后的 React 控制台
+- 如果前端尚未构建，则回退到 `dashboard/` 下的旧静态页面
+
+### 4. 内部控制台
+- 任务意图输入：输入自然语言情报、方向或阶段目标，交给 `command` 生成候选执行方案
+- 总览：查看队列状态、6 类 worker 心跳、最近结果和日志更新时间
+- 发布：直接下发 `steady / rush` 任务，支持二次确认和交互式工具标记
+- 执行工作台：按能力与执行代理浏览各类 worker、历史任务和状态
+- 工具目录：按档位检索常规工具和特殊工具，查看 recipe 与 policy
+- 结果面板：查看近期任务、执行摘要和结果状态
+
+### 5. 工具发现和使用
 ```bash
 # 发现工具
 oc-toolfind offense recon
 oc-toolfind offense web
+oc-toolfind all --profile rush --special-only
 
 # 查看工具目录
 oc-toolcat offense
@@ -130,14 +167,27 @@ oc-mon0  # 需要sudo
 ├── 📄 CHANGELOG.md                       # 变更记录系统
 ├── events/                              # 事件队列核心
 │   ├── publish.py                      # 事件发布脚本
-│   ├── agent_consumer.py               # 正式消费者处理脚本
+│   ├── worker.py                       # 数据库驱动的正式 worker
+│   ├── agent_consumer.py               # 兼容期旧消费者脚本
+│   ├── db.py                           # SQLite/WAL 数据访问层
+│   ├── executors/                      # 执行器分层
 │   ├── status.py                       # 队列状态监控
 │   ├── archive.py                      # 归档脚本（每日2点运行）
 │   ├── storage_monitor.py              # 存储监控（100MB阈值）
 │   ├── EVENT_PROTOCOL.md               # 事件协议文档
-│   ├── tasks-*.jsonl                   # 正式分片任务存储
-│   ├── results.jsonl                   # 结果存储
+│   ├── runtime/openclaw.db             # SQLite/WAL 任务真源
+│   ├── tasks-*.jsonl                   # JSONL 兼容镜像
+│   ├── results.jsonl                   # 兼容期结果镜像
 │   └── archive/                        # 归档目录
+├── dashboard/                          # 控制台后端与旧静态页面回退
+│   ├── server.py                       # 控制台 HTTP/API 服务
+│   ├── index.html                      # 旧静态控制台入口
+│   ├── styles.css                      # 旧静态样式
+│   └── app.js                          # 旧静态交互逻辑
+├── dashboard-ui/                       # 正式 React + Vite 控制台
+│   ├── src/                            # Mission / Campaign / Execution / Command Board 等页面
+│   ├── package.json                    # 前端依赖与脚本
+│   └── vite.config.ts                  # 构建配置
 ├── agent-kits/                         # 工具目录系统
 │   ├── common/bin/
 │   │   ├── oc-toolfind                # 工具搜索
@@ -159,7 +209,7 @@ oc-mon0  # 需要sudo
 └── 📄 .gitignore                       # Git忽略文件
 ```
 
-备注：旧版共享 `offense` 路径与历史 `consume.py` 已退出正式结构；当前正式执行路径仅保留 `events/agent_consumer.py` 和独立 `workspaces/offense-*`。
+备注：旧版共享 `offense` 路径与历史 `consume.py` 已退出正式结构；当前执行主线已转向 `events/worker.py` + SQLite/WAL，`agent_consumer.py` 仅保留兼容过渡意义。
 
 ## 📚 核心文档
 

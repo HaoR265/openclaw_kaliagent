@@ -8,21 +8,30 @@
 
 ## 📋 文档分类索引
 
+说明：
+- 当前阶段先通过文档索引做正规化分类，不急着大规模移动根目录文件
+- 文档分层入口见 [docs/README.md](docs/README.md)
+- 当前半成品阶段总结见 [OpenClaw-阶段性实力评估与发展方向总结.md](OpenClaw-阶段性实力评估与发展方向总结.md)
+
 ### 🏗️ 架构设计文档
 | 文档 | 位置 | 用途 | 阅读顺序 |
 |------|------|------|----------|
 | **[README.md](README.md)** | 项目根目录 | 项目总览和快速开始 | 1 |
 | **[ARCHITECTURE.md](ARCHITECTURE.md)** | 项目根目录 | 完整架构设计和技术细节 | 2 |
-| **[OpenClaw-多Agent编排与Kali工具系统重构设计.md](OpenClaw-多Agent编排与Kali工具系统重构设计.md)** | 项目根目录 | 后续阶段的统一架构蓝图和技术细化方案 | 3 |
-| **[OpenClaw-C方案-事件驱动任务队列-详细实施计划.md](OpenClaw-C方案-事件驱动任务队列-详细实施计划.md)** | 项目根目录 | 原始设计和历史规划文档 | 4 |
-| **[OpenClaw-C方案-事件驱动任务队列-总结报告.md](OpenClaw-C方案-事件驱动任务队列-总结报告.md)** | 项目根目录 | 实施成果总结和分析 | 5 |
-| **[OpenClaw-Kali工具目录系统-介绍文档.md](OpenClaw-Kali工具目录系统-介绍文档.md)** | 项目根目录 | 工具系统详细说明 | 6 |
+| **[OpenClaw-阶段性实力评估与发展方向总结.md](OpenClaw-阶段性实力评估与发展方向总结.md)** | 项目根目录 | 当前半成品版本的实力、方向、对标与对接判断 | 3 |
+| **[OpenClaw-多Agent编排与Kali工具系统重构设计.md](OpenClaw-多Agent编排与Kali工具系统重构设计.md)** | 项目根目录 | 后续阶段的统一架构蓝图和技术细化方案 | 4 |
+| **[OpenClaw-智能指挥与作战控制系统设计.md](OpenClaw-智能指挥与作战控制系统设计.md)** | 项目根目录 | 前端控制台、指挥角色、自动化托管板块 | 5 |
+| **[OpenClaw-情报、记忆与研究分析设计.md](OpenClaw-情报、记忆与研究分析设计.md)** | 项目根目录 | 知识库、记忆、情报与研究分析板块 | 6 |
+| **[OpenClaw-C方案-事件驱动任务队列-详细实施计划.md](OpenClaw-C方案-事件驱动任务队列-详细实施计划.md)** | 项目根目录 | 原始设计和历史规划文档 | 7 |
+| **[OpenClaw-C方案-事件驱动任务队列-总结报告.md](OpenClaw-C方案-事件驱动任务队列-总结报告.md)** | 项目根目录 | 实施成果总结和分析 | 8 |
+| **[OpenClaw-Kali工具目录系统-介绍文档.md](OpenClaw-Kali工具目录系统-介绍文档.md)** | 项目根目录 | 工具系统详细说明 | 9 |
 
 ### 🔧 开发和运维文档
 | 文档 | 位置 | 用途 | 目标读者 |
 |------|------|------|----------|
 | **[CONTRIBUTING.md](CONTRIBUTING.md)** | 项目根目录 | AI和开发者代码贡献指南 | AI助手、开发者 |
 | **[events/EVENT_PROTOCOL.md](events/EVENT_PROTOCOL.md)** | `events/`目录 | 事件格式和协议规范 | 开发者、架构师 |
+| **dashboard / dashboard-ui** | `dashboard/`, `dashboard-ui/` | 控制台后端、旧静态回退页与正式 React 控制台 | 操作人员、开发者 |
 | **[ACP_CONFIG.md](ACP_CONFIG.md)** | 项目根目录 | Codex/AI最大权限配置指南 | AI助手、系统管理员 |
 | **[CHANGELOG.md](CHANGELOG.md)** | 项目根目录 | 变更记录和追踪系统 | 所有贡献者 |
 | **代理TOOLS.md文件** | `workspaces/*/TOOLS.md` | 各代理专用工具和约束指南 | 代理用户、AI |
@@ -44,15 +53,21 @@
 **推荐阅读顺序**:
 1. **[README.md](README.md)** - 项目总览（5分钟）
 2. **[ARCHITECTURE.md](ARCHITECTURE.md)** - 详细架构（15分钟）
-3. **[OpenClaw-多Agent编排与Kali工具系统重构设计.md](OpenClaw-多Agent编排与Kali工具系统重构设计.md)** - 未来阶段统一蓝图（15分钟）
-4. **[CONTRIBUTING.md](CONTRIBUTING.md)** - 代码修改指南（10分钟）
-5. **[events/EVENT_PROTOCOL.md](events/EVENT_PROTOCOL.md)** - 事件协议（5分钟）
+3. **[OpenClaw-阶段性实力评估与发展方向总结.md](OpenClaw-阶段性实力评估与发展方向总结.md)** - 当前半成品状态、方向和外部对标（15分钟）
+4. **[OpenClaw-多Agent编排与Kali工具系统重构设计.md](OpenClaw-多Agent编排与Kali工具系统重构设计.md)** - 未来阶段统一蓝图（15分钟）
+5. **[OpenClaw-智能指挥与作战控制系统设计.md](OpenClaw-智能指挥与作战控制系统设计.md)** - 控制台、指挥角色与自动化托管板块（15分钟）
+6. **[OpenClaw-情报、记忆与研究分析设计.md](OpenClaw-情报、记忆与研究分析设计.md)** - 记忆、知识库与研究分析板块（15分钟）
+7. **[CONTRIBUTING.md](CONTRIBUTING.md)** - 代码修改指南（10分钟）
+8. **[events/EVENT_PROTOCOL.md](events/EVENT_PROTOCOL.md)** - 事件协议（5分钟）
 
 **快速测试**:
 ```bash
 # 验证系统状态
 openclaw gateway status
 cd ~/.openclaw/events && python3 status.py
+
+# 启动内部控制台
+cd ~/.openclaw && python3 dashboard/server.py --host 127.0.0.1 --port 8787
 
 # 测试工具发现
 oc-toolfind offense recon

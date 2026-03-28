@@ -18,16 +18,29 @@ subagents/
 canvas/
 
 # ========== 事件队列运行时文件 ==========
-events/archive/           # 归档文件（自动生成）
-events/*.log             # 日志文件
-events/*.lock            # 锁文件
-events/tasks-*.jsonl     # 每日任务文件（自动生成）
-events/results.jsonl     # 结果文件（自动生成）
+# 归档文件（自动生成）
+events/archive/
+# 日志文件
+events/*.log
+# 锁文件
+events/*.lock
+# 每日任务文件（自动生成）
+events/tasks-*.jsonl
+# 结果文件（自动生成）
+events/results.jsonl
+# SQLite/WAL 运行时真源
+events/runtime/*.db
+# SQLite 辅助文件
+events/runtime/*.db-*
+events/runtime/artifacts/
 
 # ========== 代理运行时状态 ==========
-agents/*/sessions/       # 会话文件
-agents/*/runs/          # 运行记录
-agents/*/workspace/     # 代理工作空间（可能包含运行时文件）
+# 会话文件
+agents/*/sessions/
+# 运行记录
+agents/*/runs/
+# 代理工作空间（可能包含运行时文件）
+agents/*/workspace/
 
 # ========== 备份和临时文件 ==========
 _hard_reset_*/
@@ -49,8 +62,10 @@ openclaw.json.bak*
 openclaw.json.before-*
 openclaw.json.pre-*
 openclaw.json.test-*
-openclaw.json.GOLDEN    # 如果需要保留，可移除此项
-openclaw-new.json       # 临时配置
+# 如果需要保留，可移除此项
+openclaw.json.GOLDEN
+# 临时配置
+openclaw-new.json
 
 # ========== 开发缓存 ==========
 __pycache__/

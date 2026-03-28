@@ -1,0 +1,12 @@
+{
+  "id": "wireless-usb-only",
+  "description": "wireless execution must not touch the connected Wi-Fi interface and must use USB Wi-Fi only",
+  "allowed_tools": ["aircrack-ng"],
+  "forbid_interactive": true,
+  "allow_interactive_in_rush": true,
+  "require_secondary_confirmation": true,
+  "allow_high_risk_in_rush": true,
+  "requires_usb_wifi": true,
+  "allow_external_wifi_operations": true,
+  "forbid_connected_wifi_modification": true
+}

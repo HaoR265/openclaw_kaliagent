@@ -1,6 +1,16 @@
 {
   "version": 1,
   "profiles": {
+    "deepseek:command": {
+      "provider": "deepseek",
+      "mode": "api_key",
+      "keyRef": {
+        "source": "env",
+        "provider": "default",
+        "id": "DEEPSEEK_API_KEY_COMMAND"
+      },
+      "type": "api_key"
+    },
     "openai:default": {
       "provider": "openai",
       "mode": "api_key",
@@ -18,6 +28,20 @@
       "refresh": "rt_s7FCbYYvzYEd3rPS5W59T9L7oU2ANtTFeM3dh7weYaA.rcbLsS44xTZOXa1XX0le_Byq7WSAmyIw3EZH4coTl6A",
       "expires": 1775499309000,
       "accountId": "cdd64906-363c-4523-a39d-7acccc92ece8"
+    }
+  },
+  "lastGood": {
+    "deepseek": "deepseek:command",
+    "openai": "openai:default"
+  },
+  "usageStats": {
+    "deepseek:command": {
+      "errorCount": 0,
+      "lastUsed": 1774653670338
+    },
+    "openai:default": {
+      "errorCount": 0,
+      "lastUsed": 1774653429039
     }
   }
 }
