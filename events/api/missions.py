@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+from pathlib import Path
 
 from services.control import (
     add_discussion_message,
@@ -17,12 +18,14 @@ from services.control import (
 )
 
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+DEFAULT_ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(os.environ.get("KALICLAW_ROOT", str(DEFAULT_ROOT))).expanduser()
+CLI_BIN = os.environ.get("KALICLAW_CLI_BIN", "openclaw")
 
 
 def _build_analysis_prompt(text: str) -> str:
     return f"""
-你是 OpenClaw 的 analyst。目标是把输入的情报、方向或阶段目标，整理成候选方案和可执行任务。
+你是 Kaliclaw 的 analyst。目标是把输入的情报、方向或阶段目标，整理成候选方案和可执行任务。
 
 输出必须是严格 JSON，不要输出 Markdown，不要输出额外解释。
 
@@ -91,7 +94,7 @@ def _run_analyst(text: str) -> dict:
     if not os.environ.get("DEEPSEEK_API_KEY_COMMAND"):
         raise RuntimeError("DEEPSEEK_API_KEY_COMMAND is not set")
     command = [
-        "openclaw",
+        CLI_BIN,
         "agent",
         "--local",
         "--agent",
@@ -102,7 +105,7 @@ def _run_analyst(text: str) -> dict:
     ]
     completed = subprocess.run(
         command,
-        cwd=ROOT,
+        cwd=str(ROOT),
         env=os.environ.copy(),
         capture_output=True,
         text=True,

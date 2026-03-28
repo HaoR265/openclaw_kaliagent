@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
-import argparse, json
+import argparse, json, os
 from pathlib import Path
 
-ROOT = Path("/home/asus/.openclaw/agent-kits")
+DEFAULT_ROOT = Path(__file__).resolve().parents[2]
+ROOT = (
+    Path(os.environ["KALICLAW_ROOT"]).expanduser() / "agent-kits"
+    if os.environ.get("KALICLAW_ROOT")
+    else DEFAULT_ROOT
+)
 CATALOGS = {
     "offense": ROOT / "offense-kit" / "catalog" / "front-tools.json",
     "defense": ROOT / "defense-kit" / "catalog" / "front-tools.json",

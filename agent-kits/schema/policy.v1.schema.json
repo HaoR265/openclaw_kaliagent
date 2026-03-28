@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "OpenClaw Policy v1",
+  "title": "Kaliclaw Policy v1",
   "type": "object",
   "required": ["id", "description"],
   "properties": {

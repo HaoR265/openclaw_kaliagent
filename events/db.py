@@ -12,6 +12,7 @@ WP-1 阶段只提供最小能力：
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 import uuid
 from contextlib import contextmanager
@@ -19,8 +20,14 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 EVENTS_DIR = Path(__file__).parent
-RUNTIME_DIR = EVENTS_DIR / "runtime"
-DB_PATH = RUNTIME_DIR / "openclaw.db"
+DEFAULT_RUNTIME_DIR = EVENTS_DIR / "runtime"
+RUNTIME_DIR = Path(os.environ.get("KALICLAW_RUNTIME_DIR", str(DEFAULT_RUNTIME_DIR))).expanduser()
+DB_PATH = Path(
+    os.environ.get(
+        "KALICLAW_DB_PATH",
+        str(RUNTIME_DIR / os.environ.get("KALICLAW_DB_BASENAME", "openclaw.db")),
+    )
+).expanduser()
 MIGRATIONS_DIR = EVENTS_DIR / "migrations"
 
 

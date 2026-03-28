@@ -1,12 +1,18 @@
-# OpenClaw 架构设计
+# Kaliclaw 架构基线
 
 **文档版本**: 2.0  
 **最后更新**: 2026-03-28  
-**主设计文档**: [OpenClaw-多Agent编排与Kali工具系统重构设计.md](OpenClaw-多Agent编排与Kali工具系统重构设计.md)
+**主设计文档**: 当前仍参考历史过渡稿 [docs/history/OpenClaw-多Agent编排与Kali工具系统重构设计.md](docs/history/OpenClaw-%E5%A4%9AAgent%E7%BC%96%E6%8E%92%E4%B8%8EKali%E5%B7%A5%E5%85%B7%E7%B3%BB%E7%BB%9F%E9%87%8D%E6%9E%84%E8%AE%BE%E8%AE%A1.md)
 
 ## 文档定位
 
-本文档描述当前仓库已经落地的正式架构基线。更长周期的演进路线、分阶段工作包和工具目录升级方案，统一以主设计文档为准。
+本文档描述当前仓库已经落地的正式架构基线。
+
+说明：
+
+- 本文档是 Kaliclaw 当前正式架构入口之一
+- 仍以 `OpenClaw-*.md` 命名的设计稿，现已归档到 `docs/history/`
+- 更长周期的路线、阶段工作包和旧设计背景，请按需查阅那些历史材料
 
 ## 正式基线
 
@@ -71,7 +77,8 @@ command
 
 ### SQLite/WAL
 
-当前正式真源位于 [openclaw.db](/home/asus/.openclaw/events/runtime/openclaw.db)。核心表包括：
+当前正式真源位于 `events/runtime/openclaw.db`。  
+这里的数据库文件名仍是兼容层默认值，但当前已经支持通过 `KALICLAW_RUNTIME_DIR`、`KALICLAW_DB_PATH`、`KALICLAW_DB_BASENAME` 覆盖；它不代表当前正式品牌命名。核心表包括：
 
 - `tasks`
 - `task_attempts`
@@ -169,6 +176,6 @@ queued -> canceled
 
 ## 后续路线
 
-后续实现细节、工作包顺序和技术路线，请直接参考：
+后续实现细节、工作包顺序和技术路线，如需追溯历史设计，请参考：
 
-- [OpenClaw-多Agent编排与Kali工具系统重构设计.md](OpenClaw-多Agent编排与Kali工具系统重构设计.md)
+- [docs/history/OpenClaw-多Agent编排与Kali工具系统重构设计.md](docs/history/OpenClaw-%E5%A4%9AAgent%E7%BC%96%E6%8E%92%E4%B8%8EKali%E5%B7%A5%E5%85%B7%E7%B3%BB%E7%BB%9F%E9%87%8D%E6%9E%84%E8%AE%BE%E8%AE%A1.md)

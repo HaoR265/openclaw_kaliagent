@@ -79,8 +79,8 @@
 
 这些分别归：
 
-- [OpenClaw-多Agent编排与Kali工具系统重构设计.md](/home/asus/.openclaw/OpenClaw-多Agent编排与Kali工具系统重构设计.md)
-- [OpenClaw-智能指挥与作战控制系统设计.md](/home/asus/.openclaw/OpenClaw-智能指挥与作战控制系统设计.md)
+- [OpenClaw-多Agent编排与Kali工具系统重构设计.md](/home/asus/.openclaw/docs/history/OpenClaw-多Agent编排与Kali工具系统重构设计.md)
+- [OpenClaw-智能指挥与作战控制系统设计.md](/home/asus/.openclaw/docs/history/OpenClaw-智能指挥与作战控制系统设计.md)
 
 ---
 
@@ -273,13 +273,13 @@
 从现在开始建议固定为：
 
 1. 基础设施板块  
-   [OpenClaw-多Agent编排与Kali工具系统重构设计.md](/home/asus/.openclaw/OpenClaw-多Agent编排与Kali工具系统重构设计.md)
+   [OpenClaw-多Agent编排与Kali工具系统重构设计.md](/home/asus/.openclaw/docs/history/OpenClaw-多Agent编排与Kali工具系统重构设计.md)
 
 2. 智能指挥与控制板块  
-   [OpenClaw-智能指挥与作战控制系统设计.md](/home/asus/.openclaw/OpenClaw-智能指挥与作战控制系统设计.md)
+   [OpenClaw-智能指挥与作战控制系统设计.md](/home/asus/.openclaw/docs/history/OpenClaw-智能指挥与作战控制系统设计.md)
 
 3. 情报、记忆与研究分析板块  
-   [OpenClaw-情报、记忆与研究分析设计.md](/home/asus/.openclaw/OpenClaw-情报、记忆与研究分析设计.md)
+   [OpenClaw-情报、记忆与研究分析设计.md](/home/asus/.openclaw/docs/history/OpenClaw-情报、记忆与研究分析设计.md)
 
 这样后续再扩前端、角色、自动化托管、知识库和研究能力时，不会继续挤在一份文档里。
 

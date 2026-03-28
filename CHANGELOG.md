@@ -1,8 +1,141 @@
-# OpenClaw C方案 - 变更记录
+# Kaliclaw - 变更记录
 
 **版本**: 1.0  
-**维护者**: OpenClaw Command Agent  
+**维护者**: Kaliclaw Command Agent  
 **格式**: 基于时间的变更记录，每次Codex/AI修改后更新
+
+---
+
+## [2026-03-28 19:40] Kaliclaw 独立化第五轮收口：配置名迁移通道与 source->target 规范化
+
+**执行者**: Codex
+**变更类型**: 兼容层 / 配置迁移 / 文档
+**影响范围**: `update_workspaces.py`, `kaliclaw.env.example`, `README.md`, `DOCUMENTATION.md`, `ACP_CONFIG.md`, `CHANGELOG.md`
+**风险等级**: 低
+**验证状态**: 已验证
+
+### 变更详情
+- **变更目的**:
+  - 让兼容层不再只能原地规范 `openclaw.json`，而是能正式支持从旧配置名读取并写出新的目标配置名，为后续切换到 `kaliclaw.json` 预留无痛迁移路径
+- **技术内容**:
+  - `update_workspaces.py` 新增 `KALICLAW_SOURCE_CONFIG_BASENAME`，现在支持 `source_config_path -> config_path` 的双基名迁移
+  - 脚本在 `source` 与 `target` 不同时，即使对象路径本身无需更新，也会写出新的目标配置文件并输出“配置已迁移”提示
+  - `kaliclaw.env.example` 增加 `KALICLAW_SOURCE_CONFIG_BASENAME` 示例注释
+  - `README.md` 与 `DOCUMENTATION.md` 新增“从兼容配置名生成新的 Kaliclaw 配置文件”示例命令
+  - `ACP_CONFIG.md` 顶部兼容说明补充 `KALICLAW_SOURCE_CONFIG_BASENAME` 的迁移用途
+- **测试验证**:
+  - `python3 -m py_compile update_workspaces.py`
+  - `python3 update_workspaces.py`
+  - `KALICLAW_SOURCE_CONFIG_BASENAME=openclaw.json KALICLAW_CONFIG_BASENAME=kaliclaw.test.json python3 update_workspaces.py`
+  - `python3 -m json.tool kaliclaw.test.json`
+  - 验证后删除临时迁移产物 `kaliclaw.test.json`
+
+## [2026-03-29 01:05] Kaliclaw 独立化第四轮收口：数据库路径参数化与兼容配置规范化
+
+**执行者**: Codex
+**变更类型**: 兼容层 / 运行时 / 文档
+**影响范围**: `events/db.py`, `events/knowledge/db.py`, `update_workspaces.py`, `kaliclaw.env.example`, `README.md`, `DOCUMENTATION.md`, `ARCHITECTURE.md`, `ACP_CONFIG.md`, `CHANGELOG.md`
+**风险等级**: 中
+**验证状态**: 已验证
+
+### 变更详情
+- **变更目的**:
+  - 把运行时数据库名和活动配置里的绝对路径再推进一层参数化，同时保持当前默认环境不被破坏
+- **技术内容**:
+  - `events/db.py` 现在支持 `KALICLAW_RUNTIME_DIR`、`KALICLAW_DB_PATH`、`KALICLAW_DB_BASENAME`
+  - `events/knowledge/db.py` 现在支持 `KALICLAW_RUNTIME_DIR`、`KALICLAW_KNOWLEDGE_DB_PATH`、`KALICLAW_KNOWLEDGE_DB_BASENAME`
+  - `update_workspaces.py` 不再只是更新 offense workspace，而是会统一规范 agent `workspace`、`agentDir` 和 `tools.exec.pathPrepend`
+  - 新增 `kaliclaw.env.example`，给 `KALICLAW_*` 兼容变量一个统一的本地覆盖模板
+  - `README.md` 与 `DOCUMENTATION.md` 新增“规范化兼容配置路径”说明，明确当前如何把 `openclaw.json` 对齐到新的 `KALICLAW_ROOT`
+  - `ARCHITECTURE.md` 与 `ACP_CONFIG.md` 补充数据库路径覆盖说明
+- **测试验证**:
+  - `python3 -m py_compile events/db.py events/knowledge/db.py update_workspaces.py`
+  - `python3 update_workspaces.py`
+  - `python3 - <<'PY' ...` 读取 `events.db.DB_PATH` 与 `events.knowledge.db.DB_PATH`，确认默认仍解析到当前运行时数据库
+  - `cd dashboard-ui && npm run build`
+
+---
+
+## [2026-03-29 00:40] Kaliclaw 独立化第三轮收口：活跃模板、schema 标题与工具脚本去旧名
+
+**执行者**: Codex
+**变更类型**: 文档 / 模板 / 工具脚本 / 轻量兼容收口
+**影响范围**: `agent-kits/schema/tool-catalog.v2.schema.json`, `agent-kits/schema/recipe.v1.schema.json`, `agent-kits/schema/policy.v1.schema.json`, `agent-kits/common/bin/oc-mon0`, `agents/offense-*/AGENTS.md`, `workspaces/command/AGENTS.md`, `workspaces/*/IDENTITY.md`, `ACP_CONFIG.md`, `README.md`, `CHANGELOG.md`
+**风险等级**: 低
+**验证状态**: 已验证
+
+### 变更详情
+- **变更目的**:
+  - 继续清理还会直接暴露给维护者或运行模板的旧品牌和绝对路径，避免后续新增内容再次沿用旧名
+- **技术内容**:
+  - `agent-kits/schema/*.json` 的 schema 标题统一从 `OpenClaw` 改为 `Kaliclaw`
+  - `agent-kits/common/bin/oc-mon0` 改为基于脚本相对路径加载 `_net_guard_lib.sh`，不再写死 `/home/asus/.openclaw`
+  - `agents/offense-*/AGENTS.md` 的调试命令统一改为 `${KALICLAW_CLI_BIN:-openclaw}` 形式，明确是兼容 CLI fallback
+  - `workspaces/*/IDENTITY.md` 的头像示例统一改为 `avatars/kaliclaw.png`
+  - `workspaces/command/AGENTS.md` 将 “OpenClaw agent” 改为 “Kaliclaw agent”
+  - `ACP_CONFIG.md` 顶部叙事改为 Kaliclaw，并把少量仍直接叫旧品牌的提示语改成“兼容 CLI / 兼容配置”口径
+  - `README.md` 中关于历史设计稿的说明改为“已归档”，与当前仓库状态一致
+- **测试验证**:
+  - `python3 -m py_compile workspaces/offense-*/consume.py agent-kits/validators/validate_catalog.py`
+  - `python3 agent-kits/validators/validate_catalog.py`
+  - `cd dashboard-ui && npm run build`
+  - 复扫活跃文件，确认剩余 `openclaw` 命中主要属于兼容默认值、上游引用或历史文档路径
+
+---
+
+## [2026-03-29 00:20] Kaliclaw 独立化第二轮收口：历史文档归档与兼容参数化起步
+
+**执行者**: Codex
+**变更类型**: 文档 / 兼容层 / 工具脚本 / 仓库整理
+**影响范围**: `docs/history/README.md`, `docs/history/*.md`, `README.md`, `DOCUMENTATION.md`, `docs/README.md`, `ARCHITECTURE.md`, `dashboard/server.py`, `events/api/missions.py`, `update_workspaces.py`, `events/tool_registry.py`, `agent-kits/validators/validate_catalog.py`, `agent-kits/common/bin/oc-toolfind`, `agent-kits/common/bin/oc-toolcat`, `workspaces/*/consume.py`, `.gitignore`, `CHANGELOG.md`
+**风险等级**: 中
+**验证状态**: 已验证
+
+### 变更详情
+- **变更目的**:
+  - 完成第二轮独立化的两件核心事：把根目录历史设计稿正式归档到 `docs/history/`，并把最关键的 `ROOT / CLI / config basename` 硬编码开始收口成 `KALICLAW_*` 兼容参数
+- **技术内容**:
+  - 将全部 `OpenClaw-*.md` 从仓库根目录迁入 `docs/history/`
+  - 新增 `docs/history/README.md` 作为统一历史归档索引
+  - 更新 `README.md`、`DOCUMENTATION.md`、`docs/README.md`、`ARCHITECTURE.md`，将历史材料入口改为 `docs/history/`，并明确当前已支持 `KALICLAW_ROOT / KALICLAW_CLI_BIN / KALICLAW_CONFIG_BASENAME`
+  - `dashboard/server.py` 与 `events/api/missions.py` 不再硬编码仓库根和 CLI 名，开始读取 `KALICLAW_ROOT` 与 `KALICLAW_CLI_BIN`
+  - `update_workspaces.py` 改为读取 `KALICLAW_ROOT` 与 `KALICLAW_CONFIG_BASENAME`
+  - `events/tool_registry.py`、`agent-kits/validators/validate_catalog.py`、`agent-kits/common/bin/oc-toolfind`、`agent-kits/common/bin/oc-toolcat` 改为从环境变量或脚本相对路径解析 `agent-kits` 根目录
+  - `workspaces/*/consume.py` 的废弃提示不再写死 `/home/asus/.openclaw`，而是动态引用兼容根目录
+  - `CHANGELOG.md` 与历史文档中的归档后链接一起修复，避免文档迁移后留下明显死链
+- **测试验证**:
+  - `python3 -m py_compile dashboard/server.py events/api/missions.py update_workspaces.py events/tool_registry.py agent-kits/validators/validate_catalog.py workspaces/offense-*/consume.py`
+  - `python3 agent-kits/validators/validate_catalog.py`
+  - `cd dashboard-ui && npm run build`
+  - `rg -n --hidden -S "KALICLAW_ROOT|KALICLAW_CLI_BIN|KALICLAW_CONFIG_BASENAME|/home/asus/.openclaw|\\bopenclaw\\b"` 复扫关键脚本，确认剩余命中主要属于兼容默认值而非品牌层漏改
+
+---
+
+## [2026-03-28 23:35] Kaliclaw 独立化第一轮收口：正式入口、UI 品牌与服务可见文案
+
+**执行者**: Codex
+**变更类型**: 文档 / UI / 服务入口 / 品牌收口
+**影响范围**: `README.md`, `DOCUMENTATION.md`, `docs/README.md`, `CONTRIBUTING.md`, `ARCHITECTURE.md`, `dashboard-ui/src/app/router.tsx`, `dashboard-ui/index.html`, `dashboard-ui/package.json`, `dashboard-ui/package-lock.json`, `dashboard/index.html`, `dashboard/server.py`, `events/api/missions.py`, `events/smoke_necessary.py`, `.gitignore`, `CHANGELOG.md`
+**风险等级**: 中
+**验证状态**: 已验证
+
+### 变更详情
+- **变更目的**:
+  - 按“Kaliclaw 独立化深度重构”第一轮要求，先把正式入口文档、前端可见品牌和服务帮助文案从 `OpenClaw` 收口到 `Kaliclaw`，同时保留运行时兼容层和历史文档层
+- **技术内容**:
+  - 重写 `README.md`、`DOCUMENTATION.md`、`docs/README.md`、`CONTRIBUTING.md`，明确项目当前以 `Kaliclaw` 对外呈现，并区分品牌层、归因层、兼容层、历史层
+  - `ARCHITECTURE.md` 改为 `Kaliclaw 架构基线`，明确 `OpenClaw-*.md` 现阶段属于历史过渡材料
+  - `dashboard-ui/src/app/router.tsx`、`dashboard-ui/index.html`、`dashboard/index.html` 更新为 `Kaliclaw` 品牌与新的控制台副标题
+  - `dashboard-ui/package.json` 与 `package-lock.json` 的构建包名同步改为 `kaliclaw-dashboard-ui`，避免构建日志继续暴露旧品牌
+  - `dashboard/server.py` 的 command 指挥官提示词、CLI 帮助描述和启动输出改为 `Kaliclaw`
+  - `events/api/missions.py` 的 analyst 提示词改为 `Kaliclaw`
+  - `events/smoke_necessary.py` 的临时产物名改为 `kaliclaw-smoke-report.txt`；`.gitignore` 头注释同步改为 `Kaliclaw`
+  - `CHANGELOG.md` 顶部维护者与标题同步改为 `Kaliclaw`
+  - 运行时兼容名称如 `openclaw` CLI、`~/.openclaw`、`openclaw.json`、`openclaw.db` 暂不改动，保留到后续参数化兼容轮次处理
+- **测试验证**:
+  - `python3 -m py_compile dashboard/server.py events/api/missions.py`
+  - `npm run build`
+  - `rg -n --hidden -S "OpenClaw|openclaw|~/.openclaw|openclaw\\.json"` 复扫残留并分类确认：当前剩余命中主要属于历史文档或兼容层
 
 ---
 
@@ -84,7 +217,7 @@
 
 **执行者**: Codex
 **变更类型**: 文档 / 架构设计
-**影响范围**: `OpenClaw-专家研究平台v1设计.md`, `docs/README.md`, `DOCUMENTATION.md`, `CHANGELOG.md`
+**影响范围**: `docs/history/OpenClaw-专家研究平台v1设计.md`, `docs/README.md`, `DOCUMENTATION.md`, `CHANGELOG.md`
 **风险等级**: 低
 **验证状态**: 已验证
 
@@ -92,7 +225,7 @@
 - **变更目的**:
   - 将“专家研究模式”从口头讨论收口成正式 v1 设计，明确它与现有 OpenClaw 的关系、对象模型、API 方向和页面结构
 - **技术内容**:
-  - 新增 `OpenClaw-专家研究平台v1设计.md`
+  - 新增 `docs/history/OpenClaw-专家研究平台v1设计.md`
   - 文档明确 `expert -> experiment_request -> control plane -> worker` 的受控实验桥接模型
   - 明确 `research_session / research_question / hypothesis / finding / experiment_request / experiment_result / analysis_package` 的核心对象
   - 明确 `Research Studio` 的页面结构和 v1 分阶段实施顺序
@@ -107,7 +240,7 @@
 
 **执行者**: Codex
 **变更类型**: 文档 / 架构 / 仓库治理
-**影响范围**: `dashboard/server.py`, `.gitignore`, `README.md`, `DOCUMENTATION.md`, `docs/README.md`, `OpenClaw-阶段性实力评估与发展方向总结.md`, `CHANGELOG.md`
+**影响范围**: `dashboard/server.py`, `.gitignore`, `README.md`, `DOCUMENTATION.md`, `docs/README.md`, `docs/history/OpenClaw-阶段性实力评估与发展方向总结.md`, `CHANGELOG.md`
 **风险等级**: 中
 **验证状态**: 已验证
 
@@ -120,7 +253,7 @@
   - `.gitignore` 补充 `events/runtime/*.db`、SQLite 辅助文件和 runtime artifacts 规则，并修正原有多处无效的同行尾注释写法
   - 将已被误纳入版本控制的运行时数据库、日志、任务 JSONL、锁文件和 agent session 文件从 Git 索引中移除，保留本地文件本身
   - 新增 `docs/README.md`，为当前根目录文档提供正式分类入口和半成品推荐阅读集
-  - `OpenClaw-阶段性实力评估与发展方向总结.md` 升级为阶段性半成品版本总结，补入对接专家研究系统、公开项目可采纳项和当前必须处理冗余项
+  - `docs/history/OpenClaw-阶段性实力评估与发展方向总结.md` 升级为阶段性半成品版本总结，补入对接专家研究系统、公开项目可采纳项和当前必须处理冗余项
   - `README.md` 与 `DOCUMENTATION.md` 更新为当前正式控制台结构：`dashboard/` 为后端与旧静态回退，`dashboard-ui/` 为正式 React 控制台
 - **测试验证**:
   - `python3 -m py_compile dashboard/server.py`
@@ -134,7 +267,7 @@
 
 **执行者**: Codex
 **变更类型**: 文档 / 架构评估
-**影响范围**: `OpenClaw-阶段性实力评估与发展方向总结.md`, `CHANGELOG.md`
+**影响范围**: `docs/history/OpenClaw-阶段性实力评估与发展方向总结.md`, `CHANGELOG.md`
 **风险等级**: 低
 **验证状态**: 已验证
 
@@ -142,7 +275,7 @@
 - **变更目的**:
   - 将本轮关于“整体架构实力、第三大板块完成度、与公开 GitHub 项目的相对位置、以及后续发展方向”的结论固化为阶段性文档，便于后续统一方向
 - **技术内容**:
-  - 新增 `OpenClaw-阶段性实力评估与发展方向总结.md`
+  - 新增 `docs/history/OpenClaw-阶段性实力评估与发展方向总结.md`
   - 文档明确区分当前强项与短板，强调 OpenClaw 当前更像“安全作战控制系统”而非“成熟专家研究平台”
   - 对比 `OpenHands / PentestGPT / PentAGI / GPT Researcher / company-research-agent` 几类公开项目，收口 OpenClaw 当前的相对位置
   - 固化“未来应新增独立研究分析面，而不是把当前 worker 继续堆成超级专家”的方向判断
@@ -532,7 +665,7 @@
 
 **执行者**: Codex
 **变更类型**: 文档 / 规划 / 决策固化
-**影响范围**: `OpenClaw-智能指挥与作战控制系统设计.md`, `OpenClaw-情报、记忆与研究分析设计.md`
+**影响范围**: `docs/history/OpenClaw-智能指挥与作战控制系统设计.md`, `docs/history/OpenClaw-情报、记忆与研究分析设计.md`
 **风险等级**: 低
 **验证状态**: 已验证
 
@@ -550,7 +683,7 @@
 
 **执行者**: Codex
 **变更类型**: 文档 / 技术设计细化
-**影响范围**: `OpenClaw-智能指挥与作战控制系统设计.md`
+**影响范围**: `docs/history/OpenClaw-智能指挥与作战控制系统设计.md`
 **风险等级**: 低
 **验证状态**: 已验证
 
@@ -568,7 +701,7 @@
 
 **执行者**: Codex
 **变更类型**: 文档 / 技术设计细化
-**影响范围**: `OpenClaw-智能指挥与作战控制系统设计.md`, `OpenClaw-情报、记忆与研究分析设计.md`
+**影响范围**: `docs/history/OpenClaw-智能指挥与作战控制系统设计.md`, `docs/history/OpenClaw-情报、记忆与研究分析设计.md`
 **风险等级**: 低
 **验证状态**: 已验证
 
@@ -585,7 +718,7 @@
 
 **执行者**: Codex
 **变更类型**: 文档 / 实施计划细化
-**影响范围**: `OpenClaw-智能指挥与作战控制系统设计.md`, `OpenClaw-情报、记忆与研究分析设计.md`
+**影响范围**: `docs/history/OpenClaw-智能指挥与作战控制系统设计.md`, `docs/history/OpenClaw-情报、记忆与研究分析设计.md`
 **风险等级**: 低
 **验证状态**: 已验证
 
@@ -603,7 +736,7 @@
 
 **执行者**: Codex
 **变更类型**: 文档 / 执行蓝图细化
-**影响范围**: `OpenClaw-智能指挥与作战控制系统设计.md`, `OpenClaw-情报、记忆与研究分析设计.md`
+**影响范围**: `docs/history/OpenClaw-智能指挥与作战控制系统设计.md`, `docs/history/OpenClaw-情报、记忆与研究分析设计.md`
 **风险等级**: 低
 **验证状态**: 已验证
 
@@ -620,7 +753,7 @@
 
 **执行者**: Codex
 **变更类型**: 文档 / 任务拆分
-**影响范围**: `OpenClaw-多Agent编排与Kali工具系统重构设计.md`, `OpenClaw-智能指挥与作战控制系统设计.md`, `OpenClaw-情报、记忆与研究分析设计.md`, `DOCUMENTATION.md`
+**影响范围**: `docs/history/OpenClaw-多Agent编排与Kali工具系统重构设计.md`, `docs/history/OpenClaw-智能指挥与作战控制系统设计.md`, `docs/history/OpenClaw-情报、记忆与研究分析设计.md`, `DOCUMENTATION.md`
 **风险等级**: 低
 **验证状态**: 已验证
 
@@ -628,10 +761,10 @@
 - **变更目的**:
   - 当前工作已经明显超出“多 Agent 编排与 Kali 工具系统重构”的单一范围，需要正式拆成新的独立任务板块，避免后续设计混写
 - **技术内容**:
-  - 将控制台板块文档重命名为 [OpenClaw-智能指挥与作战控制系统设计.md](/home/asus/.openclaw/OpenClaw-智能指挥与作战控制系统设计.md)
-  - 新建第三个大板块文档 [OpenClaw-情报、记忆与研究分析设计.md](/home/asus/.openclaw/OpenClaw-情报、记忆与研究分析设计.md)
+  - 将控制台板块文档重命名为 [docs/history/OpenClaw-智能指挥与作战控制系统设计.md](/home/asus/.openclaw/docs/history/OpenClaw-智能指挥与作战控制系统设计.md)
+  - 新建第三个大板块文档 [docs/history/OpenClaw-情报、记忆与研究分析设计.md](/home/asus/.openclaw/docs/history/OpenClaw-情报、记忆与研究分析设计.md)
   - 将三大板块正式固定为：基础设施、智能指挥与控制、情报记忆与研究分析
-  - 在原 [OpenClaw-多Agent编排与Kali工具系统重构设计.md](/home/asus/.openclaw/OpenClaw-多Agent编排与Kali工具系统重构设计.md) 顶部补充新的边界说明
+  - 在原 [docs/history/OpenClaw-多Agent编排与Kali工具系统重构设计.md](/home/asus/.openclaw/docs/history/OpenClaw-多Agent编排与Kali工具系统重构设计.md) 顶部补充新的边界说明
   - 更新 [DOCUMENTATION.md](/home/asus/.openclaw/DOCUMENTATION.md)，把三大文档加入正式索引与阅读顺序
 - **测试验证**:
   - 三个方案文档都已落地到本地
@@ -671,7 +804,7 @@
 
 **执行者**: Codex
 **变更类型**: 文档 / 规划
-**影响范围**: `OpenClaw-多Agent编排与Kali工具系统重构设计.md`
+**影响范围**: `docs/history/OpenClaw-多Agent编排与Kali工具系统重构设计.md`
 **风险等级**: 低
 **验证状态**: 已验证
 
@@ -693,7 +826,7 @@
 
 **执行者**: Codex
 **变更类型**: 代码 / 文档 / 工具
-**影响范围**: `events/publish.py`, `events/worker.py`, `events/executors/local_tool.py`, `agent-kits/common/bin/oc-toolfind`, `README.md`, `OpenClaw-多Agent编排与Kali工具系统重构设计.md`
+**影响范围**: `events/publish.py`, `events/worker.py`, `events/executors/local_tool.py`, `agent-kits/common/bin/oc-toolfind`, `README.md`, `docs/history/OpenClaw-多Agent编排与Kali工具系统重构设计.md`
 **风险等级**: 中
 **验证状态**: 已验证
 
@@ -784,7 +917,7 @@
 
 **执行者**: Codex
 **变更类型**: 代码 / 文档 / 安全
-**影响范围**: `ARCHITECTURE.md`, `events/EVENT_PROTOCOL.md`, `events/summarize.py`, `events/create_agents.py`, `events/apis.json`, `events/agent_consumer.py`, `OpenClaw-C方案-事件驱动任务队列-详细实施计划.md`, `README.md`
+**影响范围**: `ARCHITECTURE.md`, `events/EVENT_PROTOCOL.md`, `events/summarize.py`, `events/create_agents.py`, `events/apis.json`, `events/agent_consumer.py`, `docs/history/OpenClaw-C方案-事件驱动任务队列-详细实施计划.md`, `README.md`
 **风险等级**: 中
 **验证状态**: 已验证
 
@@ -796,7 +929,7 @@
   - `events/create_agents.py`
   - `events/apis.json`
   - `events/agent_consumer.py`
-  - `OpenClaw-C方案-事件驱动任务队列-详细实施计划.md`
+  - `docs/history/OpenClaw-C方案-事件驱动任务队列-详细实施计划.md`
   - `README.md`
 - **变更目的**:
   - 将文档、协议、汇总脚本和配置口径统一到当前 `SQLite/WAL + worker.py + executor` 正式路径，同时移除仓库中的明文 API 密钥
@@ -812,19 +945,19 @@
 - **测试验证**:
   - `python3 -m py_compile events/summarize.py events/create_agents.py events/worker.py events/db.py events/publish.py events/status.py`
   - `python3 events/summarize.py --last 3`
-  - `rg -n "sk-[A-Za-z0-9]+" ARCHITECTURE.md events/EVENT_PROTOCOL.md events/create_agents.py 'OpenClaw-C方案-事件驱动任务队列-详细实施计划.md' README.md DOCUMENTATION.md events`
+  - `rg -n "sk-[A-Za-z0-9]+" ARCHITECTURE.md events/EVENT_PROTOCOL.md events/create_agents.py 'docs/history/OpenClaw-C方案-事件驱动任务队列-详细实施计划.md' README.md DOCUMENTATION.md events`
 
 ## [2026-03-28 11:05] 补充 steady/rush 双模式与冲刺策略骨架
 
 **执行者**: Codex
 **变更类型**: 代码 / 文档
-**影响范围**: `OpenClaw-多Agent编排与Kali工具系统重构设计.md`, `agent-kits/schema/policy.v1.schema.json`, `agent-kits/policies/*.json`, `events/policies.py`, `events/executors/local_tool.py`
+**影响范围**: `docs/history/OpenClaw-多Agent编排与Kali工具系统重构设计.md`, `agent-kits/schema/policy.v1.schema.json`, `agent-kits/policies/*.json`, `events/policies.py`, `events/executors/local_tool.py`
 **风险等级**: 中
 **验证状态**: 已验证
 
 ### 变更详情
 - **修改文件**:
-  - `OpenClaw-多Agent编排与Kali工具系统重构设计.md`
+  - `docs/history/OpenClaw-多Agent编排与Kali工具系统重构设计.md`
   - `agent-kits/schema/policy.v1.schema.json`
   - `agent-kits/policies/common-safe.json`
   - `agent-kits/policies/wireless-usb-only.json`
@@ -1049,18 +1182,18 @@
 
 **执行者**: Codex
 **变更类型**: 文档
-**影响范围**: `OpenClaw-多Agent编排与Kali工具系统重构设计.md`, `DOCUMENTATION.md`
+**影响范围**: `docs/history/OpenClaw-多Agent编排与Kali工具系统重构设计.md`, `DOCUMENTATION.md`
 **风险等级**: 低
 **验证状态**: 已验证
 
 ### 变更详情
 - **修改文件**:
-  - `OpenClaw-多Agent编排与Kali工具系统重构设计.md`
+  - `docs/history/OpenClaw-多Agent编排与Kali工具系统重构设计.md`
   - `DOCUMENTATION.md`
 - **变更目的**:
   - 将后续所有阶段的统一架构演进方案落地到本地文档，避免上下文重置后丢失设计结论
 - **技术内容**:
-  - 新增 v2 统一方案文档，后续改名为 `OpenClaw-多Agent编排与Kali工具系统重构设计.md`
+  - 新增 v2 统一方案文档，后续改名为 `docs/history/OpenClaw-多Agent编排与Kali工具系统重构设计.md`
   - 整合任务内核升级、工具目录 schema 升级、worker/executor 分层、全阶段路线图和现有代码修改映射
   - 补充第一批实施任务清单（WP-1 ~ WP-7），便于后续按包推进
   - 在文档导航中加入该方案文档，并提升为后续阶段的优先参考资料
@@ -1208,7 +1341,7 @@
 ## [2026-03-28] 清理过时说明与测试配置
 
 **修改类型**: 文档修正 / 配置清理
-**影响范围**: `README.md`, `CONTRIBUTING.md`, `DOCUMENTATION.md`, `OpenClaw-C方案-事件驱动任务队列-总结报告.md`, `openclaw.json.GOLDEN`, `openclaw-new.json`, `openclaw.test-offense-*.json`, `openclaw.test-wireless.json`
+**影响范围**: `README.md`, `CONTRIBUTING.md`, `DOCUMENTATION.md`, `docs/history/OpenClaw-C方案-事件驱动任务队列-总结报告.md`, `openclaw.json.GOLDEN`, `openclaw-new.json`, `openclaw.test-offense-*.json`, `openclaw.test-wireless.json`
 **验证状态**: 已验证
 
 ### 修改内容
@@ -1563,13 +1696,13 @@ openclaw gateway status
 
 本轮继续把两大新板块方案从“实施清单”压到“可直接照着实现”的层级：
 
-- 为 [OpenClaw-智能指挥与作战控制系统设计.md](/home/asus/.openclaw/OpenClaw-智能指挥与作战控制系统设计.md) 新增：
+- 为 [docs/history/OpenClaw-智能指挥与作战控制系统设计.md](/home/asus/.openclaw/docs/history/OpenClaw-智能指挥与作战控制系统设计.md) 新增：
   - 核心对象字段清单
   - 第一版 API / SSE / 页面清单
   - Mission / Plan / Campaign 的阶段门槛
   - 前后端回归检查清单
   - 默认直接实施规则
-- 为 [OpenClaw-情报、记忆与研究分析设计.md](/home/asus/.openclaw/OpenClaw-情报、记忆与研究分析设计.md) 新增：
+- 为 [docs/history/OpenClaw-情报、记忆与研究分析设计.md](/home/asus/.openclaw/docs/history/OpenClaw-情报、记忆与研究分析设计.md) 新增：
   - 核心表字段与 staging 流水线阶段
   - 检索接口与统一返回结构
   - 高价值来源分级
@@ -1585,12 +1718,12 @@ openclaw gateway status
 
 继续为两份主方案补足最后一层实现附录：
 
-- 为 [OpenClaw-智能指挥与作战控制系统设计.md](/home/asus/.openclaw/OpenClaw-智能指挥与作战控制系统设计.md) 新增：
+- 为 [docs/history/OpenClaw-智能指挥与作战控制系统设计.md](/home/asus/.openclaw/docs/history/OpenClaw-智能指挥与作战控制系统设计.md) 新增：
   - 页面字段表
   - Mission / Plan / Campaign 请求响应示例
   - Workflow 与 SSE 消息骨架
   - React 模块建议与默认编码顺序
-- 为 [OpenClaw-情报、记忆与研究分析设计.md](/home/asus/.openclaw/OpenClaw-情报、记忆与研究分析设计.md) 新增：
+- 为 [docs/history/OpenClaw-情报、记忆与研究分析设计.md](/home/asus/.openclaw/docs/history/OpenClaw-情报、记忆与研究分析设计.md) 新增：
   - SQL schema 草案
   - `ingestion_jobs` / `staging_items` 状态流转
   - `intel_item / knowledge_entry / experience_record / analyst_context` 示例 JSON

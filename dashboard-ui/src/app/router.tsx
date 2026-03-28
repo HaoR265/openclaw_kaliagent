@@ -37,8 +37,8 @@ export function AppRouter() {
         <div className="brand">
           <div className="brand-mark">K</div>
           <div>
-            <div className="brand-title">OpenClaw</div>
-            <div className="brand-sub">Command Board vNext</div>
+            <div className="brand-title">Kaliclaw</div>
+            <div className="brand-sub">Operations &amp; Research Control</div>
           </div>
         </div>
         <nav className="nav">

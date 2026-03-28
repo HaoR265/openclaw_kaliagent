@@ -68,11 +68,11 @@ def main() -> None:
                 INSERT INTO artifacts(id, task_id, kind, path, mime_type, size_bytes, sha256, created_at)
                 VALUES ('artifact_smoke', ?, 'report', ?, 'text/plain', 12, NULL, datetime('now'))
                 """,
-                (task_id, "/tmp/openclaw-smoke-report.txt"),
+                (task_id, "/tmp/kaliclaw-smoke-report.txt"),
             )
             conn.commit()
         created["artifact_id"] = "artifact_smoke"
-        with open("/tmp/openclaw-smoke-report.txt", "w", encoding="utf-8") as handle:
+        with open("/tmp/kaliclaw-smoke-report.txt", "w", encoding="utf-8") as handle:
             handle.write("smoke artifact\nline2")
         artifact = get_artifact_detail("artifact_smoke")
         assert artifact and "smoke artifact" in (artifact.get("preview_text") or "")

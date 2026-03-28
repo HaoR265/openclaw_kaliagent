@@ -1,27 +1,33 @@
 #!/usr/bin/env bash
 set -euo pipefail
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -n "${KALICLAW_ROOT:-}" ]]; then
+  agent_kits_root="${KALICLAW_ROOT%/}/agent-kits"
+else
+  agent_kits_root="$(cd "$script_dir/../.." && pwd)"
+fi
 role="${1:-offense}"
 view="${2:-catalog}"
 case "$role" in
   offense)
     case "$view" in
-      catalog) cat /home/asus/.openclaw/agent-kits/offense-kit/catalog/front-tools.json ;;
-      recipes) find /home/asus/.openclaw/agent-kits/recipes -maxdepth 1 -type f -name 'recon.*.json' -o -name 'web.*.json' -o -name 'wireless.*.json' | sort | xargs cat ;;
-      policies) find /home/asus/.openclaw/agent-kits/policies -maxdepth 1 -type f | sort | xargs cat ;;
+      catalog) cat "$agent_kits_root/offense-kit/catalog/front-tools.json" ;;
+      recipes) find "$agent_kits_root/recipes" -maxdepth 1 -type f \( -name 'recon.*.json' -o -name 'web.*.json' -o -name 'wireless.*.json' \) | sort | xargs cat ;;
+      policies) find "$agent_kits_root/policies" -maxdepth 1 -type f | sort | xargs cat ;;
       *) echo "usage: oc-toolcat offense [catalog|recipes|policies]" >&2; exit 1 ;;
     esac
     ;;
   defense)
     case "$view" in
-      catalog) cat /home/asus/.openclaw/agent-kits/defense-kit/catalog/front-tools.json ;;
-      policies) find /home/asus/.openclaw/agent-kits/policies -maxdepth 1 -type f | sort | xargs cat ;;
+      catalog) cat "$agent_kits_root/defense-kit/catalog/front-tools.json" ;;
+      policies) find "$agent_kits_root/policies" -maxdepth 1 -type f | sort | xargs cat ;;
       *) echo "usage: oc-toolcat defense [catalog|policies]" >&2; exit 1 ;;
     esac
     ;;
   command-rare)
     case "$view" in
-      catalog) cat /home/asus/.openclaw/agent-kits/cmd-special/catalog/rare-tools.json ;;
-      policies) find /home/asus/.openclaw/agent-kits/policies -maxdepth 1 -type f | sort | xargs cat ;;
+      catalog) cat "$agent_kits_root/cmd-special/catalog/rare-tools.json" ;;
+      policies) find "$agent_kits_root/policies" -maxdepth 1 -type f | sort | xargs cat ;;
       *) echo "usage: oc-toolcat command-rare [catalog|policies]" >&2; exit 1 ;;
     esac
     ;;

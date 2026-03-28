@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import os
 import sqlite3
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-RUNTIME_DIR = ROOT / "events" / "runtime"
-DB_PATH = RUNTIME_DIR / "knowledge.db"
+ROOT = Path(os.environ.get("KALICLAW_ROOT", str(Path(__file__).resolve().parents[2]))).expanduser()
+DEFAULT_RUNTIME_DIR = ROOT / "events" / "runtime"
+RUNTIME_DIR = Path(os.environ.get("KALICLAW_RUNTIME_DIR", str(DEFAULT_RUNTIME_DIR))).expanduser()
+DB_PATH = Path(
+    os.environ.get(
+        "KALICLAW_KNOWLEDGE_DB_PATH",
+        str(RUNTIME_DIR / os.environ.get("KALICLAW_KNOWLEDGE_DB_BASENAME", "knowledge.db")),
+    )
+).expanduser()
 MIGRATIONS_DIR = Path(__file__).resolve().parent / "migrations"
 
 

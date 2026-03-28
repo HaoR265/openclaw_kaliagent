@@ -93,8 +93,8 @@
 - artifact 存储实现细节
 
 这些分别归：
-- [OpenClaw-多Agent编排与Kali工具系统重构设计.md](/home/asus/.openclaw/OpenClaw-多Agent编排与Kali工具系统重构设计.md)
-- [OpenClaw-情报、记忆与研究分析设计.md](/home/asus/.openclaw/OpenClaw-情报、记忆与研究分析设计.md)
+- [OpenClaw-多Agent编排与Kali工具系统重构设计.md](/home/asus/.openclaw/docs/history/OpenClaw-多Agent编排与Kali工具系统重构设计.md)
+- [OpenClaw-情报、记忆与研究分析设计.md](/home/asus/.openclaw/docs/history/OpenClaw-情报、记忆与研究分析设计.md)
 
 ---
 
@@ -427,13 +427,13 @@
 
 从现在开始建议明确：
 
-- [OpenClaw-多Agent编排与Kali工具系统重构设计.md](/home/asus/.openclaw/OpenClaw-多Agent编排与Kali工具系统重构设计.md)
+- [OpenClaw-多Agent编排与Kali工具系统重构设计.md](/home/asus/.openclaw/docs/history/OpenClaw-多Agent编排与Kali工具系统重构设计.md)
   - 负责底层编排、任务内核、工具目录、worker/executor、policy/recipe
 
-- [OpenClaw-智能指挥与作战控制系统设计.md](/home/asus/.openclaw/OpenClaw-智能指挥与作战控制系统设计.md)
+- [OpenClaw-智能指挥与作战控制系统设计.md](/home/asus/.openclaw/docs/history/OpenClaw-智能指挥与作战控制系统设计.md)
   - 负责前端控制台、指挥角色、自然语言入口、自动化托管与控制面设计
 
-- [OpenClaw-情报、记忆与研究分析设计.md](/home/asus/.openclaw/OpenClaw-情报、记忆与研究分析设计.md)
+- [OpenClaw-情报、记忆与研究分析设计.md](/home/asus/.openclaw/docs/history/OpenClaw-情报、记忆与研究分析设计.md)
   - 负责知识库、经验沉淀、情报整理与未来研究分析能力
 
 三者相关，但不再混写。

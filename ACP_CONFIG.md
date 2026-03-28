@@ -1,14 +1,23 @@
-# OpenClaw ACP配置 - Codex最大权限指南
+# Kaliclaw ACP配置 - Codex最大权限指南
 
 **版本**: 1.0  
 **最后更新**: 2026-03-28  
-**用途**: 配置和使用Codex/AI代码助手进行OpenClaw开发
+**用途**: 配置和使用Codex/AI代码助手进行Kaliclaw开发
 
 ---
 
 ## 📋 概述
 
-本文档提供OpenClaw C方案魔改版中**Codex/AI代码助手的完整配置和使用指南**，确保AI工具拥有最大权限访问Kali工具和硬件设备，并建立规范的变更记录系统。
+本文档提供 Kaliclaw 当前仓库中 **Codex/AI代码助手的完整配置和使用指南**，确保 AI 工具拥有最大权限访问 Kali 工具和硬件设备，并建立规范的变更记录系统。
+
+说明：
+
+- 本文档的项目品牌以 `Kaliclaw` 为准
+- 文中的 `openclaw` CLI、`~/.openclaw`、`openclaw.json` 仍属于当前兼容默认值；如需迁移到新配置名，可配合 `KALICLAW_SOURCE_CONFIG_BASENAME` 与 `KALICLAW_CONFIG_BASENAME` 使用
+- 数据库与运行时目录也可以通过 `KALICLAW_RUNTIME_DIR`、`KALICLAW_DB_PATH`、`KALICLAW_KNOWLEDGE_DB_PATH` 等环境变量覆盖
+- 后续独立化轮次会继续把这些兼容默认值参数化，而不是在这里粗暴全改
+
+建议先准备一份本地环境覆盖文件，参考仓库根目录的 `kaliclaw.env.example`。
 
 ### 核心目标
 1. **🔓 最大权限**: Codex可以无限制访问系统工具和硬件
@@ -67,7 +76,7 @@
 
 ## 🚀 Codex调用方法
 
-### 1. 通过OpenClaw会话调用
+### 1. 通过兼容 CLI 会话调用
 ```bash
 # 基本调用（一次性任务）
 sessions_spawn runtime="acp" agentId="codex" task="修改任务描述"
@@ -376,9 +385,9 @@ fi
 # 测试实际执行权限
 echo -e "\n测试命令执行:"
 if openclaw gateway status > /dev/null 2>&1; then
-    echo "✅ OpenClaw命令执行正常"
+    echo "✅ 兼容 CLI 命令执行正常"
 else
-    echo "❌ OpenClaw命令执行失败"
+    echo "❌ 兼容 CLI 命令执行失败"
 fi
 
 echo -e "\n=== 验证完成 ==="
@@ -521,7 +530,7 @@ echo "配置恢复完成"
 ### 常见问题及解决方案
 | 问题 | 可能原因 | 解决方案 |
 |------|----------|----------|
-| Codex无法执行命令 | exec权限配置错误 | 验证openclaw.json配置，重启Gateway |
+| Codex无法执行命令 | exec权限配置错误 | 验证兼容配置文件，重启 Gateway |
 | 工具命令找不到 | pathPrepend配置错误 | 检查pathPrepend路径，验证工具安装 |
 | sudo权限被拒绝 | elevated配置无效 | 检查sudoers配置，验证用户权限 |
 | 命令执行超时 | timeout设置太短 | 增加timeout值，优化命令执行 |

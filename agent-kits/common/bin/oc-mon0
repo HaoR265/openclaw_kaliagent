@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-source /home/asus/.openclaw/agent-kits/common/bin/_net_guard_lib.sh
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$script_dir/_net_guard_lib.sh"
 
 REAL_IW="/usr/sbin/iw"
 REAL_IP="/usr/sbin/ip"

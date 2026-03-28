@@ -6,8 +6,8 @@
 **定位**: 面向未来阶段的统一方案，整合 C 方案队列内核升级与 Kali 工具目录系统升级  
 
 > 边界说明：本文件后续主要负责“任务内核 / worker-executor / tool catalog-recipe-policy / 编排底座”。  
-> 与前端控制台、`commander/analyst`、自动化托管模式相关的新板块，已单独拆到 [OpenClaw-智能指挥与作战控制系统设计.md](/home/asus/.openclaw/OpenClaw-智能指挥与作战控制系统设计.md)。  
-> 与知识库、经验记忆、情报整理、研究分析相关的新板块，已单独拆到 [OpenClaw-情报、记忆与研究分析设计.md](/home/asus/.openclaw/OpenClaw-情报、记忆与研究分析设计.md)。
+> 与前端控制台、`commander/analyst`、自动化托管模式相关的新板块，已单独拆到 [OpenClaw-智能指挥与作战控制系统设计.md](/home/asus/.openclaw/docs/history/OpenClaw-智能指挥与作战控制系统设计.md)。  
+> 与知识库、经验记忆、情报整理、研究分析相关的新板块，已单独拆到 [OpenClaw-情报、记忆与研究分析设计.md](/home/asus/.openclaw/docs/history/OpenClaw-情报、记忆与研究分析设计.md)。
 
 ---
 

@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
-ROOT = Path("/home/asus/.openclaw/agent-kits")
+DEFAULT_ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(os.environ.get("KALICLAW_ROOT", str(DEFAULT_ROOT))).expanduser() / "agent-kits"
 CATALOG_PATHS = [
     ROOT / "offense-kit" / "catalog" / "front-tools.json",
     ROOT / "defense-kit" / "catalog" / "front-tools.json",

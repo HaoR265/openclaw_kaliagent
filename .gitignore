@@ -1,4 +1,4 @@
-# OpenClaw C方案魔改版 .gitignore
+# Kaliclaw .gitignore
 
 # ========== 敏感信息 ==========
 .env
@@ -93,9 +93,9 @@ Thumbs.db
 
 # ========== 文档和报告（选择性跟踪） ==========
 # 以下文件建议跟踪，但排除本地生成的报告
-# OpenClaw-C方案-事件驱动任务队列-详细实施计划.md   # 跟踪
-# OpenClaw-C方案-事件驱动任务队列-总结报告.md       # 跟踪  
-# OpenClaw-Kali工具目录系统-介绍文档.md             # 跟踪
+# docs/history/OpenClaw-C方案-事件驱动任务队列-详细实施计划.md   # 历史文档，跟踪
+# docs/history/OpenClaw-C方案-事件驱动任务队列-总结报告.md       # 历史文档，跟踪
+# docs/history/OpenClaw-Kali工具目录系统-介绍文档.md             # 历史文档，跟踪
 # README.md, ARCHITECTURE.md, CONTRIBUTING.md, DOCUMENTATION.md # 跟踪
 
 # ========== 工具目录系统 ==========

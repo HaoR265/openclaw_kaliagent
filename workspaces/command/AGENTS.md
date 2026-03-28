@@ -30,6 +30,6 @@ Proxy rules:
 
 Architecture Note:
 - Generic 'offense' agent is deprecated (replaced by 6 specialized attackers)
-- Each specialized attacker is both an OpenClaw agent and an event queue consumer
+- Each specialized attacker is both a Kaliclaw agent and an event queue consumer
 - Event-driven task queue (C-scheme) enables async, decoupled execution
 - Legacy shared `workspaces/offense` and old `consume.py` paths are not part of the formal execution path

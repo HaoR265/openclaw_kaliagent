@@ -11,7 +11,9 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-ROOT = Path("/home/asus/.openclaw")
+DEFAULT_ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(os.environ.get("KALICLAW_ROOT", str(DEFAULT_ROOT))).expanduser()
+CLI_BIN = os.environ.get("KALICLAW_CLI_BIN", "openclaw")
 EVENTS_DIR = ROOT / "events"
 DASHBOARD_DIR = ROOT / "dashboard"
 DASHBOARD_UI_DIST_DIR = ROOT / "dashboard-ui" / "dist"
@@ -415,7 +417,7 @@ def get_command_board_insights(mission_id: str) -> dict:
 
 def build_command_analysis_prompt(text: str, profile: str) -> str:
     return f"""
-你是 OpenClaw 的 command 指挥官。目标是把输入的情报、方向或阶段目标，整理成可执行候选方案。
+你是 Kaliclaw 的 command 指挥官。目标是把输入的情报、方向或阶段目标，整理成可执行候选方案。
 
 输出必须是严格 JSON，不要输出 Markdown，不要输出解释性前后文。
 
@@ -495,7 +497,7 @@ def analyze_mission(text: str, profile: str) -> dict:
         raise RuntimeError("DEEPSEEK_API_KEY_COMMAND is not set in dashboard server environment")
 
     command = [
-        "openclaw",
+        CLI_BIN,
         "agent",
         "--local",
         "--agent",
@@ -937,13 +939,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 def main() -> None:
     import argparse
 
-    parser = argparse.ArgumentParser(description="OpenClaw dashboard server")
+    parser = argparse.ArgumentParser(description="Kaliclaw dashboard server")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8787)
     args = parser.parse_args()
 
     server = ThreadingHTTPServer((args.host, args.port), DashboardHandler)
-    print(f"OpenClaw dashboard: http://{args.host}:{args.port}")
+    print(f"Kaliclaw dashboard: http://{args.host}:{args.port}")
     server.serve_forever()
 
 

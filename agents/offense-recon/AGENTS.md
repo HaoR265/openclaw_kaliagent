@@ -16,7 +16,7 @@
 
 ## 使用方式
 1. 通过事件队列路由（category="recon"）
-2. 调试/应急调用: `openclaw agent --agent offense-recon --message "任务"`
+2. 调试/应急调用: `${KALICLAW_CLI_BIN:-openclaw} agent --agent offense-recon --message "任务"`
 
 ---
 

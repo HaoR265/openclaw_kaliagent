@@ -1,366 +1,228 @@
-# OpenClaw 魔改版 - C方案事件驱动架构
+# Kaliclaw
 
-> **⚠️ 注意：这是OpenClaw的深度魔改版本，与原版架构有重大差异**
+Kaliclaw 是一个独立维护的、面向 Kali 场景的多代理作战、研究与控制平台。  
+项目早期参考了 OpenClaw 的部分代理交互理念，但当前仓库已经形成独立的事件驱动编排、专业能力代理、Mission/Campaign 工作流、Research Studio、Intel/Knowledge 检索与控制台体系。
 
-## 📋 项目概述
+## 项目定位
 
-**OpenClaw C方案**是对原版OpenClaw的重大架构改造，将系统从同步调用架构转型为**事件驱动的异步任务队列架构**，实现了专业化分工和可扩展协调。
+Kaliclaw 当前更准确的定位是：
 
-### 核心变革
-- 🔄 **同步→异步**：淘汰直接调用，引入事件队列
-- 👥 **通用→专业**：6个专业化攻击者代理
-- 🏗️ **耦合→解耦**：事件驱动，职责分离
-- 🛡️ **简单→健壮**：多层次容错和监控
+- 事件驱动的任务执行底座
+- 面向安全场景的指挥与控制平面
+- 可逐步演进为专家研究平台的作战系统底座
 
-### 正式基线
-- 正式代理总数为 8 个：`command`、`defense` 与 6 个 `offense-*` 专业攻击代理
-- 当前正式执行路径为事件驱动队列：发布到 SQLite/WAL 真源并镜像写入 `tasks-YYYY-MM-DD.jsonl`，由 `events/worker.py` 按类别消费
-- `openclaw agent --agent offense-*` 仅保留为调试或应急入口，不作为默认执行路径
-- `events/agent_consumer.py`、旧共享 `offense` 路径与历史 `consume.py` 实现已进入兼容/退役过渡，不再代表未来正式架构
+它不是通用 coding agent 平台，也不再应被描述为 “OpenClaw 魔改版”。
 
-### 项目状态
-| 模块 | 状态 | 说明 |
-|------|------|------|
-| C方案事件队列 | ✅ 生产就绪 | 阶段一完成，已验证完整工作流 |
-| 专业化代理体系 | ✅ 部署完成 | 8个代理（command+defense+6 offense-*） |
-| 工具目录系统 | ✅ 集成完成 | 300+ Kali工具，智能发现 |
-| 监控运维体系 | ✅ 配置完成 | 状态监控、存储管理、健康检查 |
+## 核心能力
 
-## 🏗️ 架构设计
+- 事件驱动执行：`publish.py -> SQLite/WAL -> worker.py -> results/artifacts`
+- 专业能力代理：`command`、`defense` 与 6 个 `offense-*` 专业执行代理
+- 控制工作台：`Mission / Campaign / Execution / Command Board / Research / Intel`
+- 研究闭环：`research session -> question -> hypothesis -> experiment request -> approve -> launch`
+- 工具目录：Kali 导向的 catalog / recipe / policy 结构
+- 结果沉淀：execution result、artifact 与最小 knowledge writeback
 
-### 系统架构图
+## 项目来源与差异
+
+Kaliclaw 的早期方向受 OpenClaw 启发，但当前系统已经在以下方面形成独立架构：
+
+- 从同步调用思路转向事件驱动异步执行
+- 从通用 agent 交互收束为专业能力代理分工
+- 引入 `Mission / Revision / Workflow / Campaign` 这套作战对象模型
+- 增加 `Research Studio`、`hypothesis`、`experiment request` 这类研究对象
+- 增加 `Intel / Knowledge` 检索与最小 runtime writeback
+- 增加前端控制台与审批、回看、排障、研究工作台
+
+当前仓库仍保留一些兼容层：
+
+- CLI 默认仍使用 `openclaw`
+- 默认运行根目录仍是 `~/.openclaw`
+- 主配置文件名仍是 `openclaw.json`
+- 当前已支持通过 `KALICLAW_ROOT`、`KALICLAW_CLI_BIN`、`KALICLAW_CONFIG_BASENAME`、`KALICLAW_SOURCE_CONFIG_BASENAME` 覆盖这些默认值
+- 运行时数据库路径也已支持通过 `KALICLAW_RUNTIME_DIR`、`KALICLAW_DB_PATH`、`KALICLAW_DB_BASENAME`、`KALICLAW_KNOWLEDGE_DB_PATH`、`KALICLAW_KNOWLEDGE_DB_BASENAME` 覆盖
+
+这些属于迁移兼容层，不代表正式品牌；后续会参数化为 Kaliclaw 风格命名。
+
+## 当前系统架构
+
+当前正式执行链：
+
+```text
+command
+  -> publish.py
+  -> SQLite/WAL (tasks/results/artifacts/workers)
+  -> worker.py --category <capability>
+  -> executor (agent_api | local_tool)
+  -> results / artifacts / writeback
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   指挥官(command)   │    │   事件驱动队列   │    │  专业化代理执行  │
-│  • 分析威胁       │───▶│  • 任务发布     │───▶│  • 工具调用     │
-│  • 发现工具       │    │  • 结果收集     │    │  • 安全约束     │
-│  • 制定策略       │    │  • 状态追踪     │    │  • 专业执行     │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                        │                        │
-         └────────────────────────┼────────────────────────┘
-                                  │
-                         ┌────────▼────────┐
-                         │  工具目录系统   │
-                         │  • 工具发现     │
-                         │  • 分类管理     │
-                         │  • 安全约束     │
-                         │  • 使用指南     │
-                         └─────────────────┘
+
+当前正式控制链：
+
+```text
+Mission
+  -> Plan Candidate
+  -> Revision
+  -> Launch
+  -> Workflow
+  -> Campaign
+  -> Execution / Command Board / Research
 ```
 
-### 代理体系
-| 代理ID | 职责 | 状态 |
-|--------|------|------|
-| `command` | 指挥官（分析/决策/委托） | ✅ 已部署 |
-| `defense` | 防御者（威胁分析） | ✅ 已部署 |
-| `offense-wireless` | 无线渗透 | ✅ 已部署 |
-| `offense-recon` | 网络侦察 | ✅ 已验证 |
-| `offense-web` | Web攻击 | ✅ 已验证 |
-| `offense-internal` | 内网渗透 | ✅ 已部署 |
-| `offense-exploit` | 漏洞利用 | ✅ 已验证 |
-| `offense-social` | 社会工程 | ✅ 已部署 |
+## 当前主要模块
 
-说明：系统包含 8 个正式代理，其中 6 个为专业攻击代理。
+| 模块 | 作用 | 当前状态 |
+|------|------|----------|
+| `events/` | 事件队列、worker、结果真源、最小研究对象 | 可用 |
+| `dashboard-ui/` | 正式 React 控制台 | 可用 |
+| `dashboard/` | 控制台后端与旧静态回退 | 可用 |
+| `agent-kits/` | 工具目录、recipe、policy | 可用 |
+| `events/knowledge/` | 最小知识检索与写回 | 骨架完成 |
+| `Research Studio` | 研究会话、假设、实验请求 | v1 最小闭环 |
 
-### 技术栈
-- **队列存储**: SQLite/WAL 真源 + JSONL 兼容镜像
-- **处理引擎**: Python worker + Cron调度（过渡期）
-- **通信协议**: 自定义事件协议（JSON格式）
-- **监控系统**: 状态脚本 + 存储监控 + 健康检查
-- **工具管理**: 智能工具发现 + 安全约束执行
-- **前端控制台**: 原生静态页面 + Python HTTP API
+## 快速开始
 
-## 🚀 快速开始
+当前仓库仍运行在兼容默认值上，因此下面命令暂时继续使用 `openclaw` 和 `~/.openclaw`。
 
-### 1. 环境检查
+如果你准备把仓库迁到别的根目录或逐步切换兼容名，先参考 [kaliclaw.env.example](kaliclaw.env.example)。
+
+### 1. 基础状态检查
+
 ```bash
-# 设置分类 API 密钥（示例）
-export DEEPSEEK_API_KEY_RECON="..."
-export DEEPSEEK_API_KEY_WEB="..."
-export DEEPSEEK_API_KEY_COMMAND="..."
-export DEEPSEEK_API_KEY_DEFENSE="..."
-
-# 检查Gateway状态
 openclaw gateway status
-
-# 检查代理注册
 openclaw agents list
-
-# 检查队列状态
 cd ~/.openclaw/events && python3 status.py
 ```
 
-可直接参考本地模板文件：[.env.deepseek.example](/home/asus/.openclaw/.env.deepseek.example)
+### 2. 启动正式控制台
 
-### 2. 发布测试任务
+成品构建版：
+
 ```bash
-# 发布端口扫描任务
+cd ~/.openclaw && python3 dashboard/server.py --host 127.0.0.1 --port 8787
+```
+
+然后打开：
+
+```text
+http://127.0.0.1:8787
+```
+
+开发模式：
+
+```bash
+cd ~/.openclaw && python3 dashboard/server.py --host 127.0.0.1 --port 8787
+```
+
+另开一个终端：
+
+```bash
+cd ~/.openclaw/dashboard-ui && npm run dev -- --host 127.0.0.1 --port 5173
+```
+
+然后打开：
+
+```text
+http://127.0.0.1:5173
+```
+
+### 3. 发布测试任务
+
+```bash
 cd ~/.openclaw/events && python3 publish.py \
-  --type scan \
+  --type task \
   --task port-scan \
   --category recon \
   --params '{"target":"127.0.0.1","ports":"22,80,443"}'
-
-# 发布冲刺模式任务（高风险/交互式工具需显式二次确认）
-cd ~/.openclaw/events && python3 publish.py \
-  --type assess \
-  --task passive-scan \
-  --category wireless \
-  --execution-profile rush \
-  --secondary-confirmation \
-  --interactive \
-  --params '{"executionMode":"local_tool","tool":"aircrack-ng","command":"aircrack-ng --help"}'
 ```
 
-### 3. 监控任务执行
+### 4. 进入研究模式
+
+打开 `Research Studio` 后，可以直接完成：
+
+- 创建 research session
+- 添加 research question
+- 生成 hypothesis
+- 保存 skeptic review
+- 创建 experiment request
+- approve / launch 到执行面
+
+### 5. 规范化兼容配置路径
+
+当仓库根目录变化，或需要把现有 `openclaw.json` 对齐到当前 `KALICLAW_ROOT` 时：
+
 ```bash
-# 查看队列状态
-python3 status.py
+source ./kaliclaw.env.example
+cd ~/.openclaw && python3 update_workspaces.py
 
-# 查看消费者日志
-tail -f recon.log
-
-# 查看结果
-grep "事件ID" results.jsonl
-
-# 启动内部控制台
-cd ~/.openclaw && DEEPSEEK_API_KEY_COMMAND="..." python3 dashboard/server.py --host 127.0.0.1 --port 8787
+# 从兼容配置名生成新的 Kaliclaw 配置文件
+KALICLAW_SOURCE_CONFIG_BASENAME=openclaw.json \
+KALICLAW_CONFIG_BASENAME=kaliclaw.json \
+python3 update_workspaces.py
 ```
 
-然后在浏览器打开 `http://127.0.0.1:8787`。
+这个脚本现在既支持原地规范化，也支持从旧配置名读取后写出新的目标配置名。
 
-说明：
-- `dashboard/server.py` 现在会优先服务 `dashboard-ui/dist` 中构建后的 React 控制台
-- 如果前端尚未构建，则回退到 `dashboard/` 下的旧静态页面
+这个脚本现在会一起规范：
 
-### 4. 内部控制台
-- 任务意图输入：输入自然语言情报、方向或阶段目标，交给 `command` 生成候选执行方案
-- 总览：查看队列状态、6 类 worker 心跳、最近结果和日志更新时间
-- 发布：直接下发 `steady / rush` 任务，支持二次确认和交互式工具标记
-- 执行工作台：按能力与执行代理浏览各类 worker、历史任务和状态
-- 工具目录：按档位检索常规工具和特殊工具，查看 recipe 与 policy
-- 结果面板：查看近期任务、执行摘要和结果状态
+- agent `workspace`
+- agent `agentDir`
+- `tools.exec.pathPrepend`
 
-### 5. 工具发现和使用
-```bash
-# 发现工具
-oc-toolfind offense recon
-oc-toolfind offense web
-oc-toolfind all --profile rush --special-only
+## 文档入口
 
-# 查看工具目录
-oc-toolcat offense
+当前正式入口：
 
-# 无线安全操作
-oc-mon0  # 需要sudo
-```
+1. [ARCHITECTURE.md](ARCHITECTURE.md)
+2. [DOCUMENTATION.md](DOCUMENTATION.md)
+3. [docs/README.md](docs/README.md)
+4. [CONTRIBUTING.md](CONTRIBUTING.md)
+5. [CHANGELOG.md](CHANGELOG.md)
 
-## 📁 项目结构
+当前已归档一批以 `OpenClaw-*.md` 命名的历史或过渡期设计文档。  
+它们现在已经归档到 [docs/history/README.md](docs/history/README.md)，只应被视为历史/参考材料，而不是当前正式品牌入口。
 
-```
-~/.openclaw/
-├── 📄 README.md                          # 本项目说明文档
-├── 📄 ARCHITECTURE.md                    # 详细架构文档
-├── 📄 CONTRIBUTING.md                    # 贡献指南
-├── 📄 DOCUMENTATION.md                   # 文档索引
-├── 📄 ACP_CONFIG.md                      # Codex/AI最大权限配置
-├── 📄 CHANGELOG.md                       # 变更记录系统
-├── events/                              # 事件队列核心
-│   ├── publish.py                      # 事件发布脚本
-│   ├── worker.py                       # 数据库驱动的正式 worker
-│   ├── agent_consumer.py               # 兼容期旧消费者脚本
-│   ├── db.py                           # SQLite/WAL 数据访问层
-│   ├── executors/                      # 执行器分层
-│   ├── status.py                       # 队列状态监控
-│   ├── archive.py                      # 归档脚本（每日2点运行）
-│   ├── storage_monitor.py              # 存储监控（100MB阈值）
-│   ├── EVENT_PROTOCOL.md               # 事件协议文档
-│   ├── runtime/openclaw.db             # SQLite/WAL 任务真源
-│   ├── tasks-*.jsonl                   # JSONL 兼容镜像
-│   ├── results.jsonl                   # 兼容期结果镜像
-│   └── archive/                        # 归档目录
-├── dashboard/                          # 控制台后端与旧静态页面回退
-│   ├── server.py                       # 控制台 HTTP/API 服务
-│   ├── index.html                      # 旧静态控制台入口
-│   ├── styles.css                      # 旧静态样式
-│   └── app.js                          # 旧静态交互逻辑
-├── dashboard-ui/                       # 正式 React + Vite 控制台
-│   ├── src/                            # Mission / Campaign / Execution / Command Board 等页面
-│   ├── package.json                    # 前端依赖与脚本
-│   └── vite.config.ts                  # 构建配置
-├── agent-kits/                         # 工具目录系统
-│   ├── common/bin/
-│   │   ├── oc-toolfind                # 工具搜索
-│   │   ├── oc-toolcat                 # 目录查看
-│   │   ├── oc-mon0                    # 无线监控接口
-│   │   └── _net_guard_lib.sh          # 网络防护库
-│   ├── offense-kit/catalog/           # 攻击工具（100+工具）
-│   ├── defense-kit/catalog/           # 防御工具
-│   └── cmd-special/catalog/           # 特殊工具
-├── agents/                             # 代理配置目录
-│   ├── command/                       # 指挥官代理
-│   ├── defense/                       # 防御者代理
-│   └── offense-*/                     # 6个专业化攻击者代理
-├── workspaces/                         # 代理工作空间
-│   ├── command/                       # 指挥官工作空间
-│   ├── defense/                       # 防御者工作空间
-│   └── offense-*/                     # 专业化代理工作空间
-├── 📄 openclaw.json                    # 主配置文件
-└── 📄 .gitignore                       # Git忽略文件
-```
+## 当前状态
 
-备注：旧版共享 `offense` 路径与历史 `consume.py` 已退出正式结构；当前执行主线已转向 `events/worker.py` + SQLite/WAL，`agent_consumer.py` 仅保留兼容过渡意义。
+当前仓库已经具备较强的控制面和执行面，但仍处于“独立化迁移 + 研究面补完”阶段。
 
-## 📚 核心文档
+已形成的正式基线：
 
-### 主要设计文档
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - 详细架构设计和实现原理
-- **[OpenClaw-C方案-事件驱动任务队列-详细实施计划.md](OpenClaw-C方案-事件驱动任务队列-详细实施计划.md)** - 原始实施计划
-- **[OpenClaw-C方案-事件驱动任务队列-总结报告.md](OpenClaw-C方案-事件驱动任务队列-总结报告.md)** - 实施总结报告
-- **[OpenClaw-Kali工具目录系统-介绍文档.md](OpenClaw-Kali工具目录系统-介绍文档.md)** - 工具系统文档
+- 事件驱动任务内核
+- 专业能力代理分工
+- Mission / Campaign / Execution / Command Board / Research 控制台
+- 最小 research plane 和最小 knowledge writeback
 
-### 操作指南
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** - 代码贡献和修改指南
-- **[DOCUMENTATION.md](DOCUMENTATION.md)** - 文档导航和阅读指南
+仍在迁移或待补完：
 
-### 技术参考
-- `events/EVENT_PROTOCOL.md` - 事件协议规范
-- 各代理的`TOOLS.md` - 代理专用工具指南
+- 兼容层与剩余旧说明清理
+- 路径、CLI、配置名与数据库名参数化
+- 更成熟的 knowledge / research plane
+- 更系统的测试与对外发布整理
 
-### AI开发和变更管理
-- **[ACP_CONFIG.md](ACP_CONFIG.md)** - Codex/AI代码助手最大权限配置指南
-- **[CHANGELOG.md](CHANGELOG.md)** - 变更记录系统，跟踪所有修改历史
-- **变更记录要求**: 所有Codex/AI修改必须更新CHANGELOG.md
-- **权限配置**: 已配置最大权限访问Kali工具和硬件设备
+## 贡献方式
 
-## 🔧 运维管理
+请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
-### 日常操作
-```bash
-# 健康检查
-cd ~/.openclaw/events && ./health_dashboard.sh
+当前最重要的贡献规则：
 
-# 存储监控
-python3 storage_monitor.py
+- 不要粗暴全局替换 `OpenClaw/openclaw`
+- 品牌层、归因层、兼容层、历史层必须分开处理
+- 新代码不得再把 OpenClaw 当作正式品牌
+- 涉及兼容项时优先参数化，而不是直接改炸运行环境
+- 所有改动都要同步更新文档和 [CHANGELOG.md](CHANGELOG.md)
 
-# 手动归档
-python3 archive.py --days 3 --keep
-```
+## 许可证与致谢
 
-### 故障排除
-| 问题 | 快速修复 |
-|------|----------|
-| 事件停滞 | 删除`*.lock`文件，手动运行消费者 |
-| API调用失败 | 检查`apis.json`，测试网络连通性 |
-| 存储空间不足 | 运行归档脚本，检查`storage_monitor.py` |
-| 代理未识别 | 重启Gateway，检查`openclaw.json`配置 |
+已核实的事实：
 
-### 备份恢复
-```bash
-# 配置备份
-cp ~/.openclaw/openclaw.json ~/.openclaw/openclaw.json.backup.$(date +%Y%m%d)
+- 当前仓库根目录还没有正式 `LICENSE` 文件
+- 本地已安装的 upstream `openclaw` 包声明为 `MIT`
 
-# 事件数据备份
-cd ~/.openclaw/events && tar czf ../events-backup-$(date +%Y%m%d).tar.gz ./
+因此当前 README 只保留事实性说明，不继续使用“遵循原项目许可证条款”这类模糊表述。  
+正式许可证文件与上游关系说明会在后续独立化轮次里单独收口。
 
-# 恢复步骤
-1. 停止Gateway: openclaw gateway stop
-2. 恢复配置文件
-3. 恢复事件数据
-4. 启动Gateway: openclaw gateway start
-5. 验证系统: python3 status.py
-```
+致谢与来源说明：
 
-## 🎯 开发指南
-
-### 代码修改流程
-1. **理解架构**: 阅读`ARCHITECTURE.md`理解设计理念
-2. **查看协议**: 参考`EVENT_PROTOCOL.md`了解事件格式
-3. **测试修改**: 使用提供的测试工作流验证
-4. **提交变更**: 遵循Git提交规范
-
-### 添加新功能
-```bash
-# 1. 添加新事件类型
-# 修改 publish.py 支持新type
-# 更新 EVENT_PROTOCOL.md 文档
-
-# 2. 添加新工具类别
-# 编辑 agent-kits/*/catalog/*.json
-# 测试 oc-toolfind 功能
-
-# 3. 添加新代理
-# 创建 agents/ 目录和配置
-# 更新 openclaw.json 注册代理
-# 创建对应workspace和TOOLS.md
-```
-
-### 测试验证
-```bash
-# 单元测试
-python3 -m pytest tests/ -v
-
-# 集成测试（完整工作流）
-./test_full_workflow.sh
-
-# 性能测试
-./test_performance.sh
-```
-
-## 🔄 版本管理
-
-### 当前版本
-- **架构版本**: C方案 v1.0（阶段一完成）
-- **工具系统**: v1.0（生产就绪）
-- **代理体系**: v1.0（8个代理部署完成）
-
-### 版本历史
-| 版本 | 日期 | 主要变更 |
-|------|------|----------|
-| v0.1 | 2026-03-26 | 初始魔改，建立事件队列基础 |
-| v0.5 | 2026-03-27 | 专业化代理拆分和注册 |
-| v1.0 | 2026-03-28 | 阶段一完成，生产就绪 |
-
-### 未来路线
-- **阶段二**（3-5周）：优先级队列、Webhook通知、可视化监控
-- **阶段三**（6-8周）：记忆管理系统、知识图谱
-- **阶段四**（9-12周）：分布式扩展、多节点部署
-
-## 👥 贡献者
-
-- **项目发起**: 用户（魔改需求提出和实施）
-- **架构设计**: OpenClaw Command Agent
-- **实现开发**: 通过AI辅助完成
-- **文档编写**: 本README及相关文档
-
-## 📄 许可证
-
-本项目基于OpenClaw原版项目魔改，遵循原项目的许可证条款。
-
-## ❓ 常见问题
-
-### Q: 与原版OpenClaw的主要区别？
-**A**: 主要区别在于架构模式：原版是同步直接调用，本魔改版是事件驱动异步队列。具体差异见`ARCHITECTURE.md`。
-
-### Q: 如何验证系统是否正常工作？
-**A**: 运行完整工作流测试：`recon → web → exploit`，查看事件是否正常处理，结果是否正确返回。
-
-### Q: 工具系统如何扩展？
-**A**: 通过编辑相应的catalog JSON文件添加新工具，然后测试`oc-toolfind`功能。
-
-### Q: 如何添加新的专业化代理？
-**A**: 参考现有代理结构，创建agents目录、workspace，更新`openclaw.json`配置，然后重启Gateway。
-
-### Q: AI/Codex如何提出改进方案？
-**A**: AI可以（也应该）提出更好的计划方案，但**必须遵循协作规则**：
-1. **先讨论，后实施**：所有改进方案必须先与用户详细讨论
-2. **完整方案文档**：提供详细的技术方案、风险评估和实施计划
-3. **明确批准**：获得用户明确批准后才能实施
-4. **完整记录**：所有讨论和实施都记录在`CHANGELOG.md`
-详细规则见`ACP_CONFIG.md`和`CONTRIBUTING.md`中的协作规则部分。
-
----
-
-**项目维护状态**: 🟢 活跃维护  
-**最后更新**: 2026-03-28  
-**文档版本**: 1.0
+- Kaliclaw 的早期方向受 OpenClaw 启发
+- 本项目在演化过程中参考了上游的一些代理交互理念
+- 当前实现、控制台、研究闭环与文档体系由本仓库独立维护并持续演进
