@@ -73,14 +73,15 @@
 
 ## 兼容层说明
 
-当前仍存在这些兼容默认值：
+当前正式默认值已经翻转到 Kaliclaw（爪龙）：
 
-- CLI 默认名：`openclaw`
-- 默认根目录：`~/.openclaw`
-- 默认配置名：`openclaw.json`
+- 默认 CLI：`kaliclaw`
+- 默认根目录：`~/.kaliclaw`
+- 默认配置名：`kaliclaw.json`
+- 默认主数据库：`kaliclaw.db`
 
-它们属于兼容层，不代表 Kaliclaw 的正式品牌命名。  
-当前已经开始通过环境变量和 fallback 的方式逐步参数化：
+以下旧值仅保留为兼容层：`openclaw`、`~/.openclaw`、`openclaw.json`、`openclaw.db`。  
+当前通过环境变量和 fallback 保留兼容迁移能力：
 
 - `KALICLAW_ROOT`
 - `KALICLAW_CLI_BIN`
@@ -103,41 +104,46 @@
 ### 状态检查
 
 ```bash
-openclaw gateway status
-cd ~/.openclaw/events && python3 status.py
+kaliclaw gateway status
+cd ~/.kaliclaw/events && python3 status.py
 ```
 
 ### 启动控制台
 
 ```bash
-cd ~/.openclaw && python3 dashboard/server.py --host 127.0.0.1 --port 8787
+cd ~/.kaliclaw && python3 dashboard/server.py --host 127.0.0.1 --port 8787
 ```
 
 ### 前端开发模式
 
 ```bash
-cd ~/.openclaw/dashboard-ui && npm run dev -- --host 127.0.0.1 --port 5173
+cd ~/.kaliclaw/dashboard-ui && npm run dev -- --host 127.0.0.1 --port 5173
 ```
 
 ### 构建前端
 
 ```bash
-cd ~/.openclaw/dashboard-ui && npm run build
+cd ~/.kaliclaw/dashboard-ui && npm run build
 ```
 
-### 规范化当前兼容配置
+### 从 OpenClaw 兼容版迁移
 
 ```bash
-source ./kaliclaw.env.example
-cd ~/.openclaw && python3 update_workspaces.py
+cd ~/.openclaw && scripts/migrate_to_kaliclaw.sh --dry-run
+cd ~/.openclaw && scripts/migrate_to_kaliclaw.sh
 
-# 从兼容配置名生成新的 Kaliclaw 配置文件
+# 迁移完成后检查新的默认运行根
+~/.kaliclaw/scripts/check_kaliclaw_runtime.sh ~/.kaliclaw
+
+# 如果只需要生成新的配置名，也可以单独运行
+KALICLAW_SOURCE_ROOT="$HOME/.openclaw" \
+KALICLAW_ROOT="$HOME/.kaliclaw" \
 KALICLAW_SOURCE_CONFIG_BASENAME=openclaw.json \
 KALICLAW_CONFIG_BASENAME=kaliclaw.json \
 python3 update_workspaces.py
 ```
 
-该脚本会基于当前 `KALICLAW_ROOT`、`KALICLAW_SOURCE_CONFIG_BASENAME` 与 `KALICLAW_CONFIG_BASENAME` 读取旧配置并写出目标配置，同时修正：
+这些脚本会基于当前 `KALICLAW_ROOT`、`KALICLAW_SOURCE_ROOT`、`KALICLAW_SOURCE_CONFIG_BASENAME` 与 `KALICLAW_CONFIG_BASENAME` 读取旧配置、写出目标配置并迁移默认运行目录，同时修正：
 
 - agent `workspace`
 - agent `agentDir`
@@ -152,4 +158,4 @@ python3 update_workspaces.py
 - 本地已安装 upstream `openclaw` 包文档目录：`/home/asus/.npm-global/lib/node_modules/openclaw/docs/`
 - upstream 仓库：`https://github.com/openclaw/openclaw`
 
-这些内容应被视为上游参考，而不是当前 Kaliclaw 的正式文档入口。
+这些内容应被视为上游参考，而不是当前 Kaliclaw 的正式文档入口。回滚说明见 [docs/reference/final-cutover-rollback.md](docs/reference/final-cutover-rollback.md)。

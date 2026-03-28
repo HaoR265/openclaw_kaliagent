@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import mimetypes
 import os
+import shutil
 import subprocess
 import time
 from http import HTTPStatus
@@ -13,7 +14,32 @@ from urllib.parse import parse_qs, urlparse
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
 ROOT = Path(os.environ.get("KALICLAW_ROOT", str(DEFAULT_ROOT))).expanduser()
-CLI_BIN = os.environ.get("KALICLAW_CLI_BIN", "openclaw")
+COMMON_BIN_DIR = ROOT / "agent-kits" / "common" / "bin"
+
+
+def _resolve_cli_bin() -> str:
+    configured = os.environ.get("KALICLAW_CLI_BIN")
+    candidates = [configured] if configured else [
+        "kaliclaw",
+        str(ROOT / "kaliclaw"),
+        str(COMMON_BIN_DIR / "kaliclaw"),
+        "openclaw",
+    ]
+    for candidate in candidates:
+        if not candidate:
+            continue
+        if os.sep in candidate:
+            expanded = Path(candidate).expanduser()
+            if expanded.exists():
+                return str(expanded)
+            continue
+        resolved = shutil.which(candidate)
+        if resolved:
+            return resolved
+    return candidates[0]
+
+
+CLI_BIN = _resolve_cli_bin()
 EVENTS_DIR = ROOT / "events"
 DASHBOARD_DIR = ROOT / "dashboard"
 DASHBOARD_UI_DIST_DIR = ROOT / "dashboard-ui" / "dist"

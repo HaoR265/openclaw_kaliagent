@@ -39,6 +39,8 @@
 
 以下内容属于参考层，而不是正式入口：
 
+- [reference/migrate-from-openclaw.md](reference/migrate-from-openclaw.md)
+- [reference/final-cutover-rollback.md](reference/final-cutover-rollback.md)
 - upstream `openclaw` 本地安装文档
 - 工具目录 JSON 与 recipe/policy 文件
 - workspaces 下的工具与身份文档
@@ -59,8 +61,8 @@
 
 ## 5. 当前不做的事
 
-这轮不继续做更深的文档重命名，只维持“正式入口 + 历史归档 + 兼容层说明”三层结构。原因很简单：
+这轮不继续做更深的历史文档重命名，只维持“正式入口 + 历史归档 + 参考迁移文档”三层结构。原因很简单：
 
 1. 历史文档已经归档完成
 2. 继续大规模改名会放大引用修复成本
-3. 下一步更值得做的是兼容层参数化和接口整理
+3. 当前更值得做的是默认值翻转后的迁移链、回滚链和兼容入口收口

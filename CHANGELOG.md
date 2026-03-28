@@ -6,6 +6,78 @@
 
 ---
 
+## [2026-03-28 21:15] Kaliclaw wrapper 修复：兼容解析 ~/.npm-global/bin/openclaw
+
+**执行者**: Codex
+**变更类型**: CLI wrapper / 兼容层 / 运行修复
+**影响范围**: `kaliclaw`, `~/.kaliclaw/kaliclaw`, `CHANGELOG.md`
+**风险等级**: 低
+**验证状态**: 已验证
+
+### 变更详情
+- **变更目的**:
+  - 修复本机 shell `PATH` 未包含 `~/.npm-global/bin` 时，`kaliclaw` wrapper 找不到 upstream `openclaw` 的问题
+- **技术内容**:
+  - wrapper 现在会按 `OPENCLAW_COMPAT_BIN -> command -v openclaw -> ~/.npm-global/bin/openclaw -> /home/asus/.npm-global/bin/openclaw` 顺序解析上游 CLI
+  - 同步修复了 `~/.openclaw/kaliclaw` 与 `~/.kaliclaw/kaliclaw`
+- **测试验证**:
+  - `kaliclaw config file` -> `~/.kaliclaw/kaliclaw.json`
+  - `~/.kaliclaw/scripts/check_kaliclaw_runtime.sh ~/.kaliclaw`
+  - `KALICLAW_ROOT=$HOME/.openclaw KALICLAW_CONFIG_PATH=$HOME/.openclaw/openclaw.json ~/.kaliclaw/kaliclaw config file` -> `~/.openclaw/openclaw.json`
+
+## [2026-03-28 21:00] Kaliclaw 本机默认根已切换：完成 ~/.kaliclaw 实际迁移与新根验证
+
+**执行者**: Codex
+**变更类型**: 本机迁移 / 默认根切换 / 验证
+**影响范围**: `~/.kaliclaw`, `~/.local/bin/kaliclaw`, `CHANGELOG.md`
+**风险等级**: 中
+**验证状态**: 已验证
+
+### 变更详情
+- **变更目的**:
+  - 不再只停在仓库代码与脚本层的默认值翻转，而是把当前机器实际切到 `~/.kaliclaw` 默认运行根
+- **技术内容**:
+  - 已执行 `scripts/migrate_to_kaliclaw.sh`，把当前兼容根复制到 `~/.kaliclaw`
+  - 已生成 `~/.kaliclaw/kaliclaw.json`，并把 agent `workspace / agentDir / tools.exec.pathPrepend` 全部指向新根目录
+  - 已复制主数据库为 `~/.kaliclaw/events/runtime/kaliclaw.db`
+  - 已创建本地 CLI 入口 `~/.local/bin/kaliclaw`
+  - 旧兼容根 `~/.openclaw` 仍完整保留，可继续作为回滚入口
+- **测试验证**:
+  - `~/.local/bin/kaliclaw config file` -> `~/.kaliclaw/kaliclaw.json`
+  - `~/.kaliclaw/scripts/check_kaliclaw_runtime.sh ~/.kaliclaw`
+  - `PYTHONPATH=$HOME/.kaliclaw python3 - <<'PY' ...` 验证 `events.db.DB_PATH = ~/.kaliclaw/events/runtime/kaliclaw.db`
+  - `PYTHONPATH=$HOME/.kaliclaw python3 ~/.kaliclaw/events/smoke_necessary.py` -> `SMOKE_NECESSARY_OK`
+  - 临时启动 `python3 ~/.kaliclaw/dashboard/server.py --host 127.0.0.1 --port 8791`，首页返回 `HTTP=200`
+  - `KALICLAW_ROOT=$HOME/.openclaw KALICLAW_CONFIG_PATH=$HOME/.openclaw/openclaw.json ./kaliclaw config file` 仍可回到旧兼容链路
+
+## [2026-03-28 20:40] Kaliclaw 最后脱离 OpenClaw 第一轮：默认运行身份翻转与迁移链闭环
+
+**执行者**: Codex
+**变更类型**: 最终 cutover / 兼容层 / 迁移脚本 / 文档 / CLI wrapper
+**影响范围**: `kaliclaw`, `agent-kits/common/bin/kaliclaw`, `scripts/migrate_to_kaliclaw.sh`, `scripts/check_kaliclaw_runtime.sh`, `docs/reference/migrate-from-openclaw.md`, `docs/reference/final-cutover-rollback.md`, `update_workspaces.py`, `events/db.py`, `dashboard/server.py`, `events/api/missions.py`, `README.md`, `DOCUMENTATION.md`, `.gitignore`, `CHANGELOG.md`
+**风险等级**: 中
+**验证状态**: 已验证
+
+### 变更详情
+- **变更目的**:
+  - 把 Kaliclaw（爪龙）的默认运行身份真正翻到 `kaliclaw / ~/.kaliclaw / kaliclaw.json / kaliclaw.db`，同时保留 OpenClaw 作为兼容 fallback，并补齐迁移链与回滚链
+- **技术内容**:
+  - 新增顶层 `kaliclaw` wrapper 和 `agent-kits/common/bin/kaliclaw`，默认优先解析 `~/.kaliclaw/kaliclaw.json`，在新默认值不存在时再回退到仓库兼容根或 `~/.openclaw/openclaw.json`
+  - `events/db.py` 的默认主数据库名已翻到 `kaliclaw.db`，同时保留对旧 `openclaw.db` 的自动探测 fallback
+  - `update_workspaces.py` 新增 `--dry-run` 与 `KALICLAW_SOURCE_ROOT`，现在支持从旧根目录读取 `openclaw.json` 并向新根目录写出 `kaliclaw.json`
+  - 新增 `scripts/migrate_to_kaliclaw.sh`，支持 dry-run、复制仓库到新默认根、复制 `openclaw.db -> kaliclaw.db`、生成新配置、创建 `~/.local/bin/kaliclaw` 链接
+  - 新增 `scripts/check_kaliclaw_runtime.sh`，用于检查 wrapper、配置、数据库和默认 CLI 解析结果
+  - 新增迁移文档 `docs/reference/migrate-from-openclaw.md` 与回滚文档 `docs/reference/final-cutover-rollback.md`
+  - `README.md`、`DOCUMENTATION.md` 与 `.gitignore` 同步到最终 cutover 口径，并补充配置名跨根目录迁移示例
+- **测试验证**:
+  - `python3 -m py_compile update_workspaces.py events/db.py dashboard/server.py events/api/missions.py`
+  - `bash -n kaliclaw agent-kits/common/bin/kaliclaw scripts/migrate_to_kaliclaw.sh scripts/check_kaliclaw_runtime.sh`
+  - `./kaliclaw config file`
+  - `./scripts/check_kaliclaw_runtime.sh /home/asus/.openclaw`
+  - `./scripts/migrate_to_kaliclaw.sh --dry-run`
+  - `KALICLAW_SOURCE_ROOT="$HOME/.openclaw" KALICLAW_ROOT="/tmp/kaliclaw-config-only" KALICLAW_SOURCE_CONFIG_BASENAME=openclaw.json KALICLAW_CONFIG_BASENAME=kaliclaw.json python3 update_workspaces.py --dry-run`
+  - 实际迁移演练到 `/tmp/kaliclaw-cutover-test`，验证 `kaliclaw.json`、`kaliclaw.db`、wrapper 和检查脚本都能落成并正常解析
+
 ## [2026-03-28 19:40] Kaliclaw 独立化第五轮收口：配置名迁移通道与 source->target 规范化
 
 **执行者**: Codex

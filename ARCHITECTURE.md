@@ -77,8 +77,8 @@ command
 
 ### SQLite/WAL
 
-当前正式真源位于 `events/runtime/openclaw.db`。  
-这里的数据库文件名仍是兼容层默认值，但当前已经支持通过 `KALICLAW_RUNTIME_DIR`、`KALICLAW_DB_PATH`、`KALICLAW_DB_BASENAME` 覆盖；它不代表当前正式品牌命名。核心表包括：
+当前正式真源默认位于 `events/runtime/kaliclaw.db`。  
+如果新默认数据库不存在而旧兼容库 `openclaw.db` 仍在，当前运行时会自动回退到旧库，避免最终 cutover 时直接丢失历史数据。数据库路径仍支持通过 `KALICLAW_RUNTIME_DIR`、`KALICLAW_DB_PATH`、`KALICLAW_DB_BASENAME` 覆盖。核心表包括：
 
 - `tasks`
 - `task_attempts`

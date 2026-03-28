@@ -22,12 +22,27 @@ from pathlib import Path
 EVENTS_DIR = Path(__file__).parent
 DEFAULT_RUNTIME_DIR = EVENTS_DIR / "runtime"
 RUNTIME_DIR = Path(os.environ.get("KALICLAW_RUNTIME_DIR", str(DEFAULT_RUNTIME_DIR))).expanduser()
-DB_PATH = Path(
-    os.environ.get(
-        "KALICLAW_DB_PATH",
-        str(RUNTIME_DIR / os.environ.get("KALICLAW_DB_BASENAME", "openclaw.db")),
-    )
-).expanduser()
+DEFAULT_DB_BASENAME = "kaliclaw.db"
+LEGACY_DB_BASENAME = "openclaw.db"
+
+
+def _default_db_path() -> Path:
+    explicit_path = os.environ.get("KALICLAW_DB_PATH")
+    if explicit_path:
+        return Path(explicit_path).expanduser()
+
+    configured_basename = os.environ.get("KALICLAW_DB_BASENAME")
+    if configured_basename:
+        return (RUNTIME_DIR / configured_basename).expanduser()
+
+    preferred = RUNTIME_DIR / DEFAULT_DB_BASENAME
+    legacy = RUNTIME_DIR / LEGACY_DB_BASENAME
+    if preferred.exists() or not legacy.exists():
+        return preferred.expanduser()
+    return legacy.expanduser()
+
+
+DB_PATH = _default_db_path()
 MIGRATIONS_DIR = EVENTS_DIR / "migrations"
 
 

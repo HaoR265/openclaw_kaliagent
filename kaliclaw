@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+DEFAULT_ROOT="${KALICLAW_ROOT:-$HOME/.kaliclaw}"
+LEGACY_ROOT="${KALICLAW_LEGACY_ROOT:-$HOME/.openclaw}"
+CONFIG_BASENAME="${KALICLAW_CONFIG_BASENAME:-kaliclaw.json}"
+LEGACY_CONFIG_BASENAME="${KALICLAW_LEGACY_CONFIG_BASENAME:-openclaw.json}"
+QUIET_COMPAT="${KALICLAW_QUIET_COMPAT:-0}"
+
+resolve_upstream_bin() {
+  local configured="${OPENCLAW_COMPAT_BIN:-}"
+  local candidates=(
+    "$configured"
+    "$(command -v openclaw 2>/dev/null || true)"
+    "$HOME/.npm-global/bin/openclaw"
+    "/home/asus/.npm-global/bin/openclaw"
+  )
+  local candidate
+  for candidate in "${candidates[@]}"; do
+    if [[ -n "$candidate" && -x "$candidate" ]]; then
+      printf '%s
+' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+warn() {
+  if [[ "$QUIET_COMPAT" != "1" ]]; then
+    printf '[kaliclaw] %s
+' "$1" >&2
+  fi
+}
+
+UPSTREAM_BIN="$(resolve_upstream_bin || true)"
+if [[ -z "$UPSTREAM_BIN" ]]; then
+  printf '[kaliclaw] upstream openclaw CLI not found; set OPENCLAW_COMPAT_BIN or install it under ~/.npm-global/bin/openclaw.
+' >&2
+  exit 127
+fi
+
+ROOT="$DEFAULT_ROOT"
+ROOT_REASON="default"
+if [[ -z "${KALICLAW_ROOT:-}" ]]; then
+  if [[ -d "$DEFAULT_ROOT" ]]; then
+    ROOT="$DEFAULT_ROOT"
+  elif [[ -f "$SCRIPT_DIR/kaliclaw.json" || -f "$SCRIPT_DIR/openclaw.json" ]]; then
+    ROOT="$SCRIPT_DIR"
+    ROOT_REASON="repo-root"
+  elif [[ -d "$LEGACY_ROOT" ]]; then
+    ROOT="$LEGACY_ROOT"
+    ROOT_REASON="legacy-root"
+  fi
+fi
+
+CONFIG_PATH="${KALICLAW_CONFIG_PATH:-}"
+CONFIG_REASON="default"
+if [[ -z "$CONFIG_PATH" ]]; then
+  if [[ -f "$ROOT/$CONFIG_BASENAME" ]]; then
+    CONFIG_PATH="$ROOT/$CONFIG_BASENAME"
+  elif [[ -f "$ROOT/$LEGACY_CONFIG_BASENAME" ]]; then
+    CONFIG_PATH="$ROOT/$LEGACY_CONFIG_BASENAME"
+    CONFIG_REASON="legacy-config"
+  else
+    CONFIG_PATH="$ROOT/$CONFIG_BASENAME"
+  fi
+fi
+
+if [[ "$ROOT_REASON" == "legacy-root" ]]; then
+  warn "compatibility mode: using legacy root $ROOT"
+elif [[ "$ROOT_REASON" == "repo-root" ]]; then
+  warn "compatibility mode: using repository root $ROOT until migration creates ~/.kaliclaw"
+fi
+if [[ "$CONFIG_REASON" == "legacy-config" ]]; then
+  warn "compatibility mode: using legacy config $(basename -- "$CONFIG_PATH")"
+fi
+
+export KALICLAW_ROOT="$ROOT"
+export OPENCLAW_STATE_DIR="$ROOT"
+export OPENCLAW_CONFIG_PATH="$CONFIG_PATH"
+
+exec "$UPSTREAM_BIN" "$@"

@@ -129,13 +129,19 @@ OpenClaw 在当前仓库里只应出现在以下位置：
 └── docs/
 ```
 
-当前兼容默认值仍然是：
+当前正式默认值已经是：
 
-- CLI：`openclaw`
-- 根目录：`~/.openclaw`
-- 配置文件：`openclaw.json`
+- CLI：`kaliclaw`
+- 根目录：`~/.kaliclaw`
+- 配置文件：`kaliclaw.json`
+- 主数据库：`kaliclaw.db`
 
-这部分暂时不代表正式品牌，只代表尚未完成参数化迁移。
+以下内容只保留为兼容 fallback：
+
+- `openclaw`
+- `~/.openclaw`
+- `openclaw.json`
+- `openclaw.db`
 
 ---
 

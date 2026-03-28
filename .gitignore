@@ -57,14 +57,24 @@ temp/
 tmp/
 
 # ========== 配置备份文件 ==========
+kaliclaw.json
+kaliclaw.db
+kaliclaw.json.backup*
+kaliclaw.json.bak*
+kaliclaw.json.before-*
+kaliclaw.json.pre-*
+kaliclaw.json.test-*
+# 如果需要保留，可移除此项
+kaliclaw.json.GOLDEN
+# 兼容配置备份
 openclaw.json.backup*
 openclaw.json.bak*
 openclaw.json.before-*
 openclaw.json.pre-*
 openclaw.json.test-*
-# 如果需要保留，可移除此项
 openclaw.json.GOLDEN
 # 临时配置
+kaliclaw-new.json
 openclaw-new.json
 
 # ========== 开发缓存 ==========
